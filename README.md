@@ -23,6 +23,16 @@ Con **🌐 Traducir títulos de otros idiomas** (en la barra lateral, viene pren
 - Si fallan los motores, los títulos quedan en su idioma y se reintenta a los 10 minutos.
 - Los títulos traducidos también sirven para buscar, para agrupar historias (un tema en inglés se junta con el mismo en español) y para el resumen del día.
 
+## Llevarlo a ChatGPT, Claude o Gemini (sin API key)
+
+Debajo de **✦ Generar con IA** está la barra para copiar:
+
+- **📋 Copiar pedido**: copia al portapapeles el pedido completo (instrucciones de la plantilla + la nota, el tema o los titulares). Después lo pegás donde quieras con Ctrl+V.
+- **Copiar y abrir ChatGPT / Claude / Gemini**: copia y abre la IA en otra pestaña; ahí solo pegás y mandás.
+- **Ver el pedido** lo muestra entero, y si es demasiado largo para pegar se puede descargar como .txt.
+
+Cada resultado de la IA de la app también tiene **📋 Copiar el resultado**, para llevarlo a un mail, un chat o un documento.
+
 ## Plantillas
 
 **Una nota**

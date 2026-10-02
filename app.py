@@ -198,6 +198,43 @@ def _js(texto):
     return json.dumps(texto).replace("</", "<\\/").replace("<!--", "<\\!--")
 
 
+_IAS = [("ChatGPT", "https://chatgpt.com/"), ("Claude", "https://claude.ai/new"), ("Gemini", "https://gemini.google.com/app")]
+
+
+def boton_copiar(texto, key, etiqueta="📋 Copiar", abrir=False):
+    """Copia el texto al portapapeles con un clic (sin descargar nada).
+    Con abrir=True suma botones que copian y abren ChatGPT, Claude o Gemini en otra pestaña: ahí solo hay que pegar."""
+    botones = f'<button class="b p" data-u="">{html.escape(etiqueta)}</button>'
+    if abrir:
+        botones += "".join(f'<button class="b" data-u="{u}">Copiar y abrir {n} ↗</button>' for n, u in _IAS)
+    _iframe(f"""
+<style>
+ body{{margin:0;font-family:"Source Sans Pro",system-ui,sans-serif}}
+ .w{{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}}
+ .b{{padding:.42rem .85rem;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:.9rem;color:#222}}
+ .b:hover{{border-color:#e34535;color:#e34535}}
+ .p{{background:#e34535;border-color:#e34535;color:#fff;font-weight:600}} .p:hover{{color:#fff;filter:brightness(.95)}}
+ .ok{{font-size:.85rem;color:#1a7f37}}
+ @media (prefers-color-scheme: dark){{.b{{background:#262730;color:#fafafa;border-color:#555}}}}
+</style>
+<div class="w">{botones}<span class="ok" id="ok"></span></div>
+<script>
+const T={_js(texto)};
+async function copiar(){{
+  try {{ await navigator.clipboard.writeText(T); return true; }} catch(e) {{
+    const a=document.createElement('textarea'); a.value=T; a.style.position='fixed'; a.style.opacity='0';
+    document.body.appendChild(a); a.focus(); a.select(); let ok=false;
+    try {{ ok=document.execCommand('copy'); }} catch(_) {{}} a.remove(); return ok; }}
+}}
+document.querySelectorAll('.b').forEach(b=>b.onclick=async()=>{{
+  const ok=await copiar(); const u=b.dataset.u;
+  document.getElementById('ok').textContent = ok ? (u ? '✔ Copiado: en la otra pestaña, pegalo con Ctrl+V' : '✔ Copiado') : '✖ No se pudo copiar: usá el recuadro de abajo';
+  if(u) window.open(u,'_blank','noopener');
+  setTimeout(()=>document.getElementById('ok').textContent='', 6000);
+}});
+</script>""", 80 if abrir else 46)
+
+
 def _limpiar_para_voz(t):
     t = re.sub(r"```.*?```", " ", t, flags=re.DOTALL)
     t = re.sub(r"\|.*\|", " ", t)
@@ -268,8 +305,7 @@ def mostrar_resultado(res, expandido=True):
                            file_name=f"{nombre}.md", mime="text/markdown", key=f"dl_{res['id']}")
         with c2:
             boton_escuchar(res["texto"], res["id"])
-        with st.popover("📋 Copiar texto"):
-            st.code(res["texto"], language="markdown")
+        boton_copiar(res["texto"], f"cp_{res['id']}", "📋 Copiar el resultado")
 
 
 def selector_plantilla(ambito, key):
@@ -294,14 +330,14 @@ def selector_plantilla(ambito, key):
 def bloque_pedido(plantilla, material, key, nombre_archivo):
     """El pedido completo para pegar en ChatGPT / Claude / Gemini, sin API key."""
     pedido = P.pedido_para_copiar(plantilla, material)
-    with st.expander(f"📋 Pedido para copiar en ChatGPT, Claude o Gemini ({len(pedido):,} caracteres)".replace(",", ".")):
-        st.caption("Tocá el ícono de copiar (arriba a la derecha del recuadro) o descargalo si es muy largo.")
-        st.code(pedido, language="text")
-        c = st.columns(4)
-        c[0].download_button("📥 .txt", pedido, file_name=f"{nombre_archivo}.txt", key=f"dlp_{key}")
-        c[1].link_button("ChatGPT", "https://chatgpt.com/")
-        c[2].link_button("Claude", "https://claude.ai/new")
-        c[3].link_button("Gemini", "https://gemini.google.com/app")
+    largo = f"{len(pedido):,}".replace(",", ".")
+    st.caption(f"Sin API key: copiá el pedido completo (instrucciones + material, {largo} caracteres) "
+               "y pegalo en la IA que quieras.")
+    boton_copiar(pedido, f"cpp_{key}", "📋 Copiar pedido", abrir=True)
+    with st.expander("Ver el pedido"):
+        st.code(pedido, language="text", wrap_lines=True)
+        st.download_button("📥 Descargar .txt (si es muy largo para pegar)", pedido,
+                           file_name=f"{nombre_archivo}.txt", key=f"dlp_{key}")
 
 
 # ═══════════════════════ barra lateral ═══════════════════════
@@ -587,11 +623,9 @@ elif vista == "🧠 Analizar nota":
         plantilla = selector_plantilla("nota", "nota")
         material = P.material_nota(art)
         if plantilla:
-            b1, b2 = st.columns([1, 3])
-            if b1.button("✦ Generar con IA", type="primary", key="gen_nota", use_container_width=True):
+            if st.button("✦ Generar con IA", type="primary", key="gen_nota"):
                 correr(plantilla, material, "nota", clave_nota, art["titulo"])
-            with b2:
-                bloque_pedido(plantilla, material, "nota", "pedido_nota")
+            bloque_pedido(plantilla, material, "nota", "pedido_nota")
 
         previos = [r for r in ss.resultados if r["ambito"] == "nota" and r["clave"] == clave_nota]
         for i, r in enumerate(previos):
@@ -693,7 +727,7 @@ elif vista == "🗂️ Tema":
         if plantilla:
             b1, b2 = st.columns([1, 3])
             gen = b1.button("✦ Generar con IA", type="primary", key="gen_tema", use_container_width=True)
-            armar = b2.button("📋 Armar el pedido para copiar", key="armar_tema")
+            armar = b2.button("📋 Armar el pedido para ChatGPT, Claude o Gemini", key="armar_tema")
             if gen or armar or ss.get("pedido_tema_clave") == (clave_tema, plantilla["id"], n_leer):
                 with st.spinner(f"Leyendo {len(a_leer)} notas completas…"):
                     arts = cargar_articulos(a_leer)
@@ -747,11 +781,9 @@ elif vista == "🗞️ Resumen del día":
         material = P.material_dia(grupos, alcance_txt, datetime.now(TZ).strftime("%d/%m/%Y %H:%M"), NOMBRE_SECCION, tapas, maximo)
         clave_dia = "dia-" + "-".join(secs)
         if plantilla:
-            b1, b2 = st.columns([1, 3])
-            if b1.button("✦ Generar con IA", type="primary", key="gen_dia", use_container_width=True):
+            if st.button("✦ Generar con IA", type="primary", key="gen_dia"):
                 correr(plantilla, material, "dia", clave_dia, f"Resumen · {alcance_txt}")
-            with b2:
-                bloque_pedido(plantilla, material, "dia", "pedido_resumen_dia")
+            bloque_pedido(plantilla, material, "dia", "pedido_resumen_dia")
         for i, r in enumerate([r for r in ss.resultados if r["ambito"] == "dia" and r["clave"] == clave_dia]):
             mostrar_resultado(r, expandido=i == 0)
 
