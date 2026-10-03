@@ -18,11 +18,31 @@ from zoneinfo import ZoneInfo
 import streamlit as st
 import streamlit.components.v1 as components
 
+import importlib
+
+import fuentes
 import ia_motores
 import lector
 import plantillas as P
 import traductor
-from fuentes import SECCIONES, FUENTE_POR_ID
+
+
+def _recargar_modulos(*mods):
+    """Streamlit vuelve a ejecutar app.py en cada cambio, pero puede quedarse con la versión vieja de los
+    otros archivos en memoria (pasa al subir una actualización a Streamlit Cloud). Si un archivo cambió
+    desde que se cargó, se recarga. El orden importa: primero los que usan los demás."""
+    for m in mods:
+        try:
+            cambio = os.path.getmtime(m.__file__)
+        except (OSError, TypeError, AttributeError):
+            continue
+        if getattr(m, "_CARGADO", 0) < cambio:
+            importlib.reload(m)
+            m._CARGADO = time.time()
+
+
+_recargar_modulos(fuentes, ia_motores, lector, traductor, P)
+SECCIONES, FUENTE_POR_ID = fuentes.SECCIONES, fuentes.FUENTE_POR_ID
 
 st.set_page_config(page_title="Monitor General", page_icon="📡", layout="wide", initial_sidebar_state="expanded")
 
