@@ -441,8 +441,8 @@ def bloque_pedido(plantilla, material, key, nombre_archivo):
     """El pedido completo para pegar en ChatGPT / Claude / Gemini, sin API key."""
     pedido = P.pedido_para_copiar(plantilla, material)
     largo = f"{len(pedido):,}".replace(",", ".")
-    st.caption(f"Sin API key: copiá el pedido completo (instrucciones + material, {largo} caracteres) "
-               "y pegalo en la IA que quieras.")
+    st.caption(f"¿Preferís hacerlo en ChatGPT, Claude o Gemini? Copiá el pedido completo "
+               f"(instrucciones + material, {largo} caracteres) y pegalo ahí.")
     boton_copiar(pedido, f"cpp_{key}", "📋 Copiar pedido", abrir=True)
     with st.expander("Ver el pedido"):
         st.code(pedido, language="text", wrap_lines=True)
