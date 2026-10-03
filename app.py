@@ -70,12 +70,47 @@ div[data-testid="stExpander"] details summary p {font-weight:600;}
 
 
 # ═══════════════════════ secretos y motores ═══════════════════════
-def _secreto(nombre):
+# Otros nombres con que se suelen guardar las mismas claves
+_ALIAS = {
+    "GEMINI_API_KEY": ["GOOGLE_API_KEY", "GOOGLE_AI_API_KEY", "GEMINI_KEY", "GEMINI"],
+    "MISTRAL_API_KEY": ["MISTRAL_KEY", "MISTRAL"],
+    "GROQ_API_KEY": ["GROQ_KEY", "GROQ"],
+    "OPENROUTER_API_KEY": ["OPENROUTER_KEY", "OPENROUTER"],
+    "ANTHROPIC_API_KEY": ["CLAUDE_API_KEY", "ANTHROPIC_KEY", "CLAUDE_KEY", "ANTHROPIC", "CLAUDE"],
+}
+
+
+def _leer_secrets():
+    """Todos los secrets en un diccionario plano, sin importar mayúsculas ni si están dentro de una sección
+    ([api_keys], [ia], etc.). Devuelve (secrets, error al leer el archivo o None)."""
+    plano = {}
+
+    def recorrer(d):
+        for k, v in d.items():
+            if hasattr(v, "items") and not isinstance(v, str):
+                recorrer(v)
+            elif isinstance(v, (str, int, float)):
+                plano.setdefault(str(k).strip().upper(), str(v))
     try:
-        v = st.secrets.get(nombre, "")
-    except Exception:
-        v = ""
-    return str(v or os.environ.get(nombre, "") or "")
+        recorrer(st.secrets)
+        return plano, None
+    except FileNotFoundError:
+        return plano, None
+    except Exception as e:
+        # Solo el tipo de error y la ubicación: nunca el contenido de los secrets
+        donde = re.search(r"line \d+(, column \d+)?|línea \d+", str(e))
+        return plano, f"{type(e).__name__}{' en ' + donde.group(0) if donde else ''}"
+
+
+_SECRETS, _ERROR_SECRETS = _leer_secrets()
+
+
+def _secreto(nombre):
+    for n in [nombre] + _ALIAS.get(nombre, []):
+        v = _SECRETS.get(n.upper()) or os.environ.get(n, "")
+        if str(v).strip():
+            return str(v).strip().strip('"').strip("'")
+    return ""
 
 
 # Las variables opcionales (IA_ORDEN, modelos, etc.) se leen de os.environ en ia_motores
@@ -459,6 +494,23 @@ with st.sidebar:
     else:
         st.warning("No hay ninguna clave cargada. Podés pegar una abajo, o usar **📋 Pedido para copiar** "
                    "en ChatGPT/Claude sin clave.")
+    with st.expander("🔍 ¿Qué claves encuentra la app?", expanded=not disp):
+        if _ERROR_SECRETS:
+            st.error(f"No se pudieron leer los Secrets: el texto tiene un error de formato ({_ERROR_SECRETS}). "
+                     "Revisá comillas y que cada clave esté en su propia línea, por ejemplo: GEMINI_API_KEY = \"AIza...\"")
+        for m in ia_motores.GRATIS + ["claude"]:
+            nombre = ia_motores.ENV[m]
+            if ss.get(f"clave_{m}"):
+                st.markdown(f"✅ {ia_motores.NOMBRES[m]}: pegada en esta sesión")
+            elif _secreto(nombre):
+                st.markdown(f"✅ {ia_motores.NOMBRES[m]}: en Secrets")
+            else:
+                st.markdown(f"⬜ {ia_motores.NOMBRES[m]}: falta `{nombre}`")
+        nombres = sorted(k for k in _SECRETS if any(x in k for x in ("KEY", "API", "TOKEN", "GEMINI", "GROQ", "MISTRAL",
+                                                                       "OPENROUTER", "CLAUDE", "ANTHROPIC")))
+        st.caption("Nombres que la app ve en Secrets (sin mostrar los valores): "
+                   + (", ".join(f"`{n}`" for n in nombres) if nombres else "ninguno.")
+                   + " Después de cambiar los Secrets puede hacer falta **Reboot app**.")
     with st.expander("🔑 Claves (para esta sesión)"):
         st.caption("Lo mejor es dejarlas en los Secrets de Streamlit. Las que pegues acá duran lo que dura la sesión.")
         for m in ia_motores.GRATIS + ["claude"]:
