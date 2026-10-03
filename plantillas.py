@@ -35,6 +35,7 @@ REGLAS_DIA = """REGLAS
 - Basate SOLO en los titulares del material. No inventes cifras, nombres, fechas ni declaraciones que no aparezcan.
 - Si deducís algo que no está explícito, aclaralo ("según se desprende de los títulos").
 - Lo que publican muchos medios o va en tapa es más importante: usalo para ordenar (por ejemplo "5m T" = 5 medios, en tapa de alguno).
+- El material viene dividido por SECCIÓN. Cubrí TODAS las secciones que aparecen, con el mismo cuidado, aunque tengan menos medios: la cantidad de medios sirve para ordenar dentro de cada sección, no para dejar secciones afuera. No mezcles temas de una sección en otra.
 - Dejá afuera notas de servicio, horóscopos, loterías, recetas y contenido patrocinado.
 - Contá los hechos sin opinar y sin tomar partido. Escribí en español rioplatense, claro y directo.
 - Hay titulares en otros idiomas: contalos en español."""
@@ -437,6 +438,179 @@ Escribí un RESUMEN PARA ESCUCHAR EN VOZ ALTA, de unas 700 palabras (unos cinco 
     },
 ]
 
+# ─────────── bloques compartidos de las plantillas nuevas ───────────
+_CORRELACIONES = """## {linea}
+## Las variables en juego
+Una tabla: Variable | Qué representa | Estado según el material | Tendencia (sube, baja, estable o incierta).
+Entre {nvar} variables concretas: económicas, políticas, sociales, internacionales o tecnológicas (por ejemplo inflación, tasas, dólar, apoyo político, conflictividad, precios internacionales, empleo).
+## Las relaciones
+Una tabla: Relación (A → B) | Tipo | Mecanismo: cómo A afecta a B | Evidencia en el material | Confianza (alta, media o baja).
+El tipo es uno de:
+- CAUSAL: hay un mecanismo claro y evidencia.
+- CORRELACIÓN: se mueven juntas, pero la causa no está probada.
+- CAUSA COMÚN: las dos dependen de un tercer factor (nombralo).
+- RETROALIMENTACIÓN: A empuja a B y B vuelve a empujar a A.
+- COINCIDENCIA: pasan al mismo tiempo sin relación demostrable.
+## Cadenas y efectos de segundo orden
+Entre 2 y 4 cadenas "A → B → C" con efectos indirectos que no se ven a primera vista, y quién los termina pagando o aprovechando.
+## Círculos que se refuerzan o se frenan
+Círculos viciosos o virtuosos que aparecen y qué podría cortarlos.
+## Conexiones con otros temas
+Con qué otros temas de la agenda se cruza (economía, política, mundo, sociedad, tecnología) y por dónde pasa el cruce.
+## Casos comparables
+Hasta {ncasos} casos parecidos en otro país u otro momento: qué pasó, qué enseña y dónde deja de servir la comparación. Marcalos como [contexto: verificar].
+## Mapa de relaciones
+Un diagrama Mermaid dentro de un bloque ```mermaid con "flowchart LR", de hasta {nnodos} nodos, con etiquetas entre comillas y sin paréntesis. Escribí la relación sobre cada flecha ("causa", "frena", "depende de", "retroalimenta"). Usá flechas punteadas -.-> para las correlaciones no probadas.
+## Qué mirar para confirmarlo
+Por cada relación clave, qué dato o hecho futuro la confirmaría y cuál la desmentiría.
+## Trampas de interpretación
+Correlaciones que parecen causa y no lo son, sesgos posibles y datos que faltan."""
+
+_TARJETAS = """## Tarjetas de repaso
+Entre {ntarj} tarjetas, cada una con este formato exacto (dos líneas por tarjeta, y una línea en blanco entre tarjetas):
+**P:** la pregunta
+**R:** la respuesta, breve
+Mezclá preguntas de datos (quién, qué, cuánto, cuándo), de comprensión (por qué, qué implica) y de conexión (con qué se relaciona, qué lo cambiaría). Una sola idea por tarjeta. Nada de preguntas de sí o no.
+## Autoevaluación
+{nquiz} preguntas de opción múltiple, numeradas, con las opciones a), b), c) y d) en líneas separadas. Debajo de cada pregunta, una línea con este formato exacto:
+**Respuesta:** la letra — por qué, en una oración.
+Que las opciones incorrectas sean creíbles."""
+
+_REPASO_FINAL = """## Cuándo repasar
+Una línea: repasá las tarjetas mañana, en 3 días y en una semana, tratando de responder antes de mirar; las que falles, repetilas antes."""
+
+NOTA_NUEVAS = [
+    {
+        "id": "correlaciones", "icono": "🔗", "nombre": "Correlaciones",
+        "desc": "Qué variables se mueven juntas, qué causa qué, efectos indirectos, casos comparables y un mapa de relaciones.",
+        "max_tokens": 4000, "nivel": "modelo",
+        "system": "Quiero entender esta nota a través de sus relaciones: qué variables se mueven juntas, qué causa qué y con qué otros temas está conectada. Usá estas secciones, con títulos que empiecen con \"## \":\n"
+                  + _CORRELACIONES.format(linea="La nota en una línea", nvar="4 y 8", ncasos="2", nnodos="10")
+                  + "\nEntre 500 y 800 palabras, sin contar las tablas ni el diagrama.\n\n" + REGLAS_NOTA,
+    },
+    {
+        "id": "repaso", "icono": "🃏", "nombre": "Para no olvidarla",
+        "desc": "Las ideas clave, una imagen para anclarla, tarjetas de repaso y una autoevaluación con respuestas ocultas.",
+        "max_tokens": 3000, "nivel": "modelo",
+        "system": """Ayudame a recordar esta nota a largo plazo, con técnicas de aprendizaje probadas: recuperación activa (responder antes de mirar), elaboración (conectar con lo que ya sé) y repetición espaciada.
+## Lo esencial
+Entre 3 y 5 ideas para recordar, una línea cada una, de la más importante a la menos importante.
+## Para anclarla
+Una imagen mental, comparación o historia breve que resuma la nota, y con qué cosa conocida se puede conectar para no olvidarla.
+""" + _TARJETAS.format(ntarj="8 y 12", nquiz=5) + "\n" + _REPASO_FINAL + "\n\n" + REGLAS_NOTA,
+    },
+    {
+        "id": "feynman", "icono": "🎓", "nombre": "Explicalo con tus palabras",
+        "desc": "Método Feynman: la nota en tres niveles, una analogía, lo que se suele entender mal y consignas para explicarla vos.",
+        "max_tokens": 2500, "nivel": "modelo",
+        "system": """Usá el método Feynman (si podés explicarlo simple, lo entendiste) para que entienda y retenga esta nota.
+## En una frase
+Como para un chico de 12 años.
+## En un párrafo
+Lo esencial: qué pasó, por qué y qué cambia.
+## En profundidad
+Tres o cuatro párrafos con los mecanismos: cómo funciona lo que la nota cuenta y por qué se llegó a esto.
+## La analogía
+Una comparación con algo cotidiano que capture la lógica del tema, y dónde la analogía deja de servir.
+## Lo que se suele entender mal
+Dos o tres confusiones frecuentes sobre el tema, y la versión correcta.
+## Ahora explicalo vos
+Tres consignas para que el lector lo explique en voz alta o por escrito sin mirar la nota (por ejemplo, "Contale a alguien por qué…"). Debajo de cada una, una línea que empiece con **Respuesta:** con lo que debería incluir una buena explicación.
+
+""" + REGLAS_NOTA,
+    },
+    {
+        "id": "ficha", "icono": "🗂️", "nombre": "Ficha para guardar",
+        "desc": "Una ficha lista para Notion, Obsidian o Google Keep: idea central, datos, conexiones, etiquetas y preguntas abiertas.",
+        "max_tokens": 1800, "nivel": "rapido",
+        "system": """Armá una FICHA DE CONOCIMIENTO de esta nota para guardar en un cuaderno de notas (Notion, Obsidian, Google Keep), en Markdown, con este formato exacto:
+# La idea central como una afirmación, no como un tema (por ejemplo "El acuerdo con el FMI acelera la baja del cepo", no "Acuerdo con el FMI")
+**Fecha:** la fecha del material · **Fuente:** el medio · **Link:** el link si está
+**Etiquetas:** entre 5 y 8, con # (tema, subtema, país, actores, concepto)
+## En 3 líneas
+## Datos clave
+Viñetas con cifras, fechas, nombres y decisiones concretas.
+## Por qué importa
+## Conexiones
+Con qué conceptos, hechos anteriores o temas se relaciona. Escribí los conceptos entre [[doble corchete]], como en Obsidian, para enlazarlos con otras fichas.
+## Preguntas abiertas
+## Para recordar en una línea
+
+""" + REGLAS_NOTA,
+    },
+]
+
+TEMA_NUEVAS = [
+    {
+        "id": "correlaciones_tema", "icono": "🔗", "nombre": "Correlaciones",
+        "desc": "Variables, relaciones causales y correlaciones, efectos de segundo orden, ciclos, casos comparables y mapa de relaciones.",
+        "max_tokens": 6000, "nivel": "modelo",
+        "system": "Quiero entender este tema a través de sus relaciones: qué variables se mueven juntas, qué causa qué, qué efectos indirectos produce y con qué otros temas está conectado. Te paso todo lo que publicaron los medios sobre la historia. Usá estas secciones, con títulos que empiecen con \"## \":\n"
+                  + _CORRELACIONES.format(linea="El tema en una línea", nvar="5 y 10", ncasos="3", nnodos="12")
+                  + "\nSi los medios relacionan las cosas de forma distinta, mostralo. Entre 800 y 1.200 palabras, sin contar las tablas ni el diagrama.\n\n" + REGLAS_TEMA,
+    },
+    {
+        "id": "repaso_tema", "icono": "🃏", "nombre": "Para no olvidarlo",
+        "desc": "Lo esencial del tema, una línea de tiempo para fijarlo, tarjetas de repaso y autoevaluación.",
+        "max_tokens": 3500, "nivel": "modelo",
+        "system": """Ayudame a recordar este tema a largo plazo, con recuperación activa, elaboración y repetición espaciada.
+## Lo esencial
+Entre 4 y 6 ideas para recordar, una línea cada una.
+## La historia en 5 momentos
+Una línea de tiempo corta para fijar la secuencia.
+## Para anclarlo
+Una imagen mental o comparación que resuma el tema, y con qué cosa conocida conectarlo.
+""" + _TARJETAS.format(ntarj="10 y 15", nquiz=6) + "\n" + _REPASO_FINAL + "\n\n" + REGLAS_TEMA,
+    },
+    {
+        "id": "ficha_tema", "icono": "🗂️", "nombre": "Ficha para guardar",
+        "desc": "Una ficha del tema para Notion u Obsidian, con las fuentes de cada medio y los conceptos enlazados.",
+        "max_tokens": 2500, "nivel": "modelo",
+        "system": """Armá una FICHA DE CONOCIMIENTO de este tema para guardar en un cuaderno de notas (Notion, Obsidian, Google Keep), en Markdown, con este formato exacto:
+# La idea central como una afirmación, no como un tema
+**Fecha:** la fecha del material · **Medios consultados:** la lista
+**Etiquetas:** entre 5 y 8, con #
+## En 3 líneas
+## Datos clave
+Viñetas, con el medio entre corchetes.
+## Lo que todavía se discute
+## Por qué importa
+## Conexiones
+Conceptos, hechos anteriores y temas relacionados, con los conceptos entre [[doble corchete]] para enlazarlos.
+## Preguntas abiertas
+## Para recordar en una línea
+
+""" + REGLAS_TEMA,
+    },
+]
+
+DIA_NUEVAS = [
+    {
+        "id": "repaso_dia", "icono": "🃏", "nombre": "Quiz del día",
+        "desc": "Las cosas para recordar de hoy y un quiz por sección para fijarlas, con las respuestas ocultas.",
+        "max_tokens": 3000, "nivel": "modelo",
+        "system": _ROL_DIA + """ Además, quiero recordar lo importante.
+
+## Lo que hay que recordar de hoy
+Entre 6 y 8 viñetas, de todas las secciones, una línea cada una.
+""" + _TARJETAS.format(ntarj="8 y 12", nquiz=8).replace("## Tarjetas de repaso", "## Tarjetas de repaso (repartidas entre todas las secciones)") + "\n\n" + REGLAS_DIA,
+    },
+]
+
+
+def _insertar(lista, nuevas, despues_de=None):
+    for n in nuevas:
+        if despues_de and n["id"].startswith("correlaciones"):
+            i = next(i for i, x in enumerate(lista) if x["id"] == despues_de) + 1
+            lista.insert(i, n)
+        else:
+            lista.append(n)
+
+
+_insertar(NOTA, NOTA_NUEVAS, "contexto")
+_insertar(TEMA, TEMA_NUEVAS, "profundizar")
+_insertar(DIA, DIA_NUEVAS)
+
 PLANTILLAS = {"nota": NOTA, "tema": TEMA, "dia": DIA}
 
 # Plantilla libre: el usuario escribe qué quiere y se le suman las reglas del ámbito
@@ -463,9 +637,15 @@ MAX_TEXTO = 24000
 MAX_PAL_NOTA_TEMA = 1200
 
 
+def _hoy():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    return datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).strftime("%d/%m/%Y")
+
+
 def material_nota(art, maximo=MAX_TEXTO):
     cuerpo = "\n\n".join(p.strip() for p in art.get("parrafos") or [] if p and p.strip())[:maximo]
-    partes = [f"Medio: {art.get('medio') or 'desconocido'}", f"Título: {art.get('titulo', '')}"]
+    partes = [f"Medio: {art.get('medio') or 'desconocido'}", f"Fecha de consulta: {_hoy()}", f"Título: {art.get('titulo', '')}"]
     if art.get("bajada"):
         partes.append(f"Bajada: {art['bajada']}")
     if art.get("url"):
@@ -482,7 +662,7 @@ def _recortar_palabras(texto, n):
 
 def material_tema(tema, notas, articulos):
     """notas: todas las notas del tema (título y medio). articulos: las leídas completas."""
-    lineas = [f"TEMA: {tema}", "", f"TÍTULOS DE LOS MEDIOS ({len(notas)} notas):"]
+    lineas = [f"TEMA: {tema}", f"Fecha de consulta: {_hoy()}", "", f"TÍTULOS DE LOS MEDIOS ({len(notas)} notas):"]
     for n in notas:
         b = f" — {n['bajada'][:200]}" if n.get("bajada") else ""
         es = f" (en español: {n['titulo_es']})" if n.get("titulo_es") else ""
@@ -499,20 +679,40 @@ def material_tema(tema, notas, articulos):
     return "\n".join(lineas)
 
 
-def material_dia(grupos, alcance, fecha, nombres_seccion, tapas, maximo=200):
-    """grupos: salida de lector.curar(). tapas: {medio: primer título}."""
-    def linea(k, g):
-        tit = lambda n: n.get("titulo_es") or n["titulo"]
-        rep = tit(g["notas"][0])
-        extra = f" / {tit(g['notas'][1])[:90]}" if len(rep) < 45 and len(g["notas"]) > 1 else ""
-        sec = nombres_seccion.get(g.get("seccion"), g.get("seccion", ""))
-        sec = f" · {sec}" if sec else ""
-        return f"[{k}] {len(g['medios'])}m{' T' if g['rmin'] == 0 else ''}{sec}: {rep[:160]}{extra}"
+def _tit(n):
+    return n.get("titulo_es") or n["titulo"]
+
+
+def _linea_grupo(k, g, secciones=""):
+    rep = _tit(g["notas"][0])
+    extra = f" / {_tit(g['notas'][1])[:90]}" if len(rep) < 45 and len(g["notas"]) > 1 else ""
+    return f"[{k}] {len(g['medios'])}m{' T' if g['rmin'] == 0 else ''}{secciones}: {rep[:160]}{extra}"
+
+
+def material_dia(secciones, destacadas, alcance, fecha, nombres_seccion, maximo=200):
+    """secciones: [(id, grupos de esa sección, {medio: título de apertura})], cada una curada por separado,
+    así ninguna sección tapa a las otras. destacadas: grupos curados sobre todas las secciones juntas."""
     lineas = [f"Alcance: {alcance}", f"Fecha: {fecha}", "",
-              "HISTORIAS (ordenadas por importancia; 5m = 5 medios la tienen, T = en tapa de algún medio):"]
-    lineas += [linea(k, g) for k, g in enumerate(grupos[:maximo])]
-    if tapas:
-        lineas += ["", "CON QUÉ ABRE CADA MEDIO:"] + [f"- {m}: {t}" for m, t in tapas.items()]
+              "Formato de cada historia: [número] cantidad de medios que la tienen (5m = 5 medios), T = en tapa de algún medio.", ""]
+    k = 0
+    if len(secciones) > 1 and destacadas:
+        lineas.append("=== LO MÁS FUERTE ENTRE TODAS LAS SECCIONES ===")
+        for g in destacadas[:12]:
+            secs = ", ".join(nombres_seccion.get(s, s) for s, _ in g["secs"].most_common())
+            lineas.append(_linea_grupo(k, g, f" · {secs}" if secs else ""))
+            k += 1
+        lineas.append("")
+    cupo = max(20, maximo // max(1, len(secciones)))
+    for sid, grupos, tapas in secciones:
+        nombre = nombres_seccion.get(sid, sid)
+        lineas.append(f"=== SECCIÓN: {nombre.upper()} ({len(tapas)} medios) ===")
+        for g in grupos[:cupo]:
+            lineas.append(_linea_grupo(k, g))
+            k += 1
+        if tapas:
+            lineas.append(f"Con qué abre cada medio de {nombre}:")
+            lineas += [f"- {m}: {t[:160]}" for m, t in tapas.items()]
+        lineas.append("")
     return "\n".join(lineas)
 
 

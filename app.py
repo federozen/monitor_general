@@ -282,6 +282,62 @@ try {{ await mermaid.run({{querySelector:'.mermaid'}}); }} catch(e) {{
 </script>""", alto)
 
 
+_RE_P = re.compile(r"^\s*(?:[-*]\s*)?\*\*P:?\*\*:?\s*(.+)$")
+_RE_R = re.compile(r"^\s*(?:[-*]\s*)?\*\*R:?\*\*:?\s*(.+)$")
+_RE_RESP = re.compile(r"^\s*(?:[-*]\s*)?\*\*Respuesta:?\*\*:?\s*(.+)$")
+
+
+def _html_simple(t):
+    t = html.escape(t)
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+
+
+def _desplegable(titulo, cuerpo, tarjeta=False):
+    """Un desplegable en HTML (los expanders de Streamlit no se pueden anidar y el resultado ya está en uno)."""
+    borde = "border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:.55rem .8rem;margin:.35rem 0;" if tarjeta \
+        else "margin:.1rem 0 .6rem 1.2rem;"
+    st.markdown(f"<details style='{borde}'><summary style='cursor:pointer;font-weight:{600 if tarjeta else 500}'>"
+                f"{_html_simple(titulo)}</summary><div style='margin-top:.45rem'>{_html_simple(cuerpo)}</div></details>",
+                unsafe_allow_html=True)
+
+
+def _markdown_con_repaso(texto, key):
+    """Markdown normal, pero las tarjetas (**P:** / **R:**) se muestran para dar vuelta
+    y las líneas **Respuesta:** quedan ocultas hasta tocarlas: primero se intenta recordar."""
+    texto = re.sub(r"^#{1,3}\s", "#### ", texto, flags=re.MULTILINE)   # títulos a tamaño de lectura
+    texto = re.sub(r"\n(\s*[a-dA-D]\)\s)", r"  \n\1", texto)              # opciones a) b) c) d) en líneas separadas
+    buf, lineas, i, n_tarj = [], texto.split("\n"), 0, 0
+
+    def volcar():
+        if "".join(buf).strip():
+            st.markdown("\n".join(buf))
+        buf.clear()
+    while i < len(lineas):
+        lin = lineas[i]
+        mp, mr = _RE_P.match(lin), _RE_RESP.match(lin)
+        if mp:
+            j = i + 1
+            while j < len(lineas) and not lineas[j].strip():
+                j += 1
+            mrr = _RE_R.match(lineas[j]) if j < len(lineas) else None
+            if mrr:
+                volcar()
+                n_tarj += 1
+                _desplegable(f"🃏 {n_tarj}. {mp.group(1).strip()}", mrr.group(1).strip(), tarjeta=True)
+                i = j + 1
+                continue
+        if mr:
+            volcar()
+            _desplegable("👀 Ver respuesta", mr.group(1).strip())
+            i += 1
+            continue
+        buf.append(lin)
+        i += 1
+    volcar()
+    if n_tarj:
+        st.caption("Tratá de responder cada tarjeta antes de abrirla: recordar activamente es lo que fija la memoria.")
+
+
 def mostrar_texto_ia(texto, key):
     """Markdown con soporte para diagramas Mermaid."""
     partes = re.split(r"```mermaid\s*\n(.*?)```", texto, flags=re.DOTALL)
@@ -291,8 +347,7 @@ def mostrar_texto_ia(texto, key):
             with st.expander("Código del diagrama"):
                 st.code(parte.strip(), language="text")
         elif parte.strip():
-            # Títulos de la IA a un tamaño de lectura (## → ####)
-            st.markdown(re.sub(r"^#{1,3}\s", "#### ", parte, flags=re.MULTILINE))
+            _markdown_con_repaso(parte, f"{key}_{i}")
 
 
 def mostrar_resultado(res, expandido=True):
@@ -753,32 +808,41 @@ elif vista == "🗞️ Resumen del día":
     ss.setdefault("secs_dia", ["argentina", "economia", "mundo"])
     secs = st.multiselect("Secciones", [s["id"] for s in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x], key="secs_dia")
     if secs:
-        todas, barra = [], st.progress(0.0, text="Leyendo los medios…")
-        tapas = {}
+        todas, por_seccion, barra = [], [], st.progress(0.0, text="Leyendo los medios…")
         for i, s in enumerate(secs):
-            res_s = cargar_seccion(s, limite)
-            for r in res_s:
+            barra.progress(i / len(secs), text=f"Leyendo {NOMBRE_SECCION[s]}…")
+            notas_s, tapas = [], {}
+            for r in cargar_seccion(s, limite):
                 items = [n for n in r["items"] if not silenciada(n, silencio)]
-                todas += items
-                if items and len(tapas) < 40:
-                    tapas.setdefault(r["nombre"], items[0].get("titulo_es") or items[0]["titulo"])
-            barra.progress((i + 1) / len(secs), text=f"Leyendo {NOMBRE_SECCION[s]}…")
+                notas_s += items
+                if items:
+                    tapas[r["nombre"]] = items[0]["titulo"]
+            preparar(notas_s)
+            tapas = {m: next((n.get("titulo_es") or n["titulo"] for n in notas_s if n["medio"] == m), t)
+                     for m, t in tapas.items()}
+            por_seccion.append((s, lector.curar(notas_s), tapas))
+            todas += notas_s
         barra.empty()
-        grupos = lector.curar(preparar(todas))
-        st.markdown(f"**{len(todas)} notas** · **{len(grupos)} historias** distintas")
+        destacadas = lector.curar(todas) if len(secs) > 1 else []
+        st.markdown(f"**{len(todas)} notas** de {len(secs)} secciones · cada sección se resume por separado, "
+                    "así ninguna tapa a las otras.")
 
-        with st.expander("Las 20 historias más fuertes (sin IA)"):
-            for g in grupos[:20]:
-                st.markdown(f"<span class='mg-chip'>{len(g['medios'])} medios</span>"
-                            + ("<span class='mg-chip'>tapa</span>" if g["rmin"] == 0 else "")
-                            + f"<span class='mg-chip'>{NOMBRE_SECCION.get(g['seccion'], '')}</span> {html.escape(g['titulo'])}",
-                            unsafe_allow_html=True)
+        with st.expander("Las historias más fuertes de cada sección (sin IA)"):
+            pestañas = st.tabs([NOMBRE_SECCION[s] for s, _, _ in por_seccion])
+            for tab, (s, grupos_s, tapas) in zip(pestañas, por_seccion):
+                with tab:
+                    st.caption(f"{len(tapas)} medios respondieron · {len(grupos_s)} historias")
+                    for g in grupos_s[:12]:
+                        st.markdown(f"<span class='mg-chip'>{len(g['medios'])} medios</span>"
+                                    + ("<span class='mg-chip'>tapa</span>" if g["rmin"] == 0 else "")
+                                    + f" {html.escape(g['titulo'])}", unsafe_allow_html=True)
 
         plantilla = selector_plantilla("dia", "dia")
         cad = ia_motores.cadena()
         maximo = 90 if cad and cad[0] == "groq" else 200
         alcance_txt = ", ".join(NOMBRE_SECCION[s] for s in secs)
-        material = P.material_dia(grupos, alcance_txt, datetime.now(TZ).strftime("%d/%m/%Y %H:%M"), NOMBRE_SECCION, tapas, maximo)
+        material = P.material_dia(por_seccion, destacadas, alcance_txt, datetime.now(TZ).strftime("%d/%m/%Y %H:%M"),
+                                  NOMBRE_SECCION, maximo)
         clave_dia = "dia-" + "-".join(secs)
         if plantilla:
             if st.button("✦ Generar con IA", type="primary", key="gen_dia"):

@@ -11,7 +11,7 @@ Usa los **mismos motores de IA** del Monitor: Gemini, Mistral, Groq y OpenRouter
 | **📰 Noticias** | Los medios de la sección elegida. Tres formas de ver: **Por medio**, **Intercalado** (la 1ª nota de cada medio, después la 2ª…) y **Por tema** (titulares agrupados por historia, ordenados por cuántos medios la tienen y si va en tapa; sin IA). Buscador que no distingue tildes ni mayúsculas. En cada nota: 🧠 para analizarla y ➕ para sumarla a un tema. |
 | **🧠 Analizar nota** | Una nota elegida, un link cualquiera o un texto pegado. Se lee completa y se elige una plantilla. Abajo, **💬 Preguntale a la nota**. |
 | **🗂️ Tema** | Varias notas de distintos medios sobre una misma historia (buscadas por palabra en la sección o en todas, o juntadas con ➕). Lee completas hasta 8 (una por medio primero) y las analiza juntas. |
-| **🗞️ Resumen del día** | Elegís las secciones; la app agrupa y ordena las historias (como Panorama) y la IA arma el resumen. |
+| **🗞️ Resumen del día** | Elegís las secciones; la app agrupa y ordena las historias de **cada sección por separado** (con su cupo y las aperturas de todos sus medios, para que ninguna tape a las otras), suma lo más fuerte entre todas y la IA arma el resumen cubriendo cada sección. |
 | **🕘 Historial** | Todo lo que generó la IA en la sesión, para descargar en un solo .md. |
 
 ## Títulos traducidos
@@ -36,13 +36,20 @@ Cada resultado de la IA de la app también tiene **📋 Copiar el resultado**, p
 ## Plantillas
 
 **Una nota**
-🧭 Entender a fondo · ⚡ Resumen express · 💼 Brief ejecutivo · 🔎 Hechos vs. opiniones · ⚖️ Las ideas en juego · 🕰️ Contexto y cronología · 🎭 Mapa de actores · 🧒 Explicámelo simple · ❓ Preguntas para seguir · 🎧 Para escuchar · 📣 Para compartir · 🌐 Traducir al español · ✍️ Mi propio pedido
+🧭 Entender a fondo · ⚡ Resumen express · 💼 Brief ejecutivo · 🔎 Hechos vs. opiniones · ⚖️ Las ideas en juego · 🕰️ Contexto y cronología · 🔗 Correlaciones · 🎭 Mapa de actores · 🧒 Explicámelo simple · ❓ Preguntas para seguir · 🎧 Para escuchar · 📣 Para compartir · 🌐 Traducir al español · 🃏 Para no olvidarla · 🎓 Explicalo con tus palabras · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
 
 **Un tema (varios medios)**
-🔬 Profundizar (los 7 pasos de Panorama, con mapa conceptual Mermaid que se dibuja en pantalla) · 📋 Todo lo que se sabe · 📰 Cómo lo cuenta cada medio · ⚡ Resumen del tema · ⚖️ Las ideas en juego · 🎧 Para escuchar · ✍️ Mi propio pedido
+🔬 Profundizar (los 7 pasos de Panorama, con mapa conceptual Mermaid que se dibuja en pantalla) · 🔗 Correlaciones · 📋 Todo lo que se sabe · 📰 Cómo lo cuenta cada medio · ⚡ Resumen del tema · ⚖️ Las ideas en juego · 🎧 Para escuchar · 🃏 Para no olvidarlo · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
 
 **El día**
-🗞️ Resumen del día · ⚡ En 10 líneas · 📑 Informe completo · 🧩 Agenda y silencios · 🎧 Para escuchar · ✍️ Mi propio pedido
+🗞️ Resumen del día · ⚡ En 10 líneas · 📑 Informe completo · 🧩 Agenda y silencios · 🎧 Para escuchar · 🃏 Quiz del día · ✍️ Mi propio pedido
+
+**🔗 Correlaciones** arma las variables en juego, una tabla de relaciones que distingue causa, correlación, causa común, retroalimentación y coincidencia (con su nivel de confianza), cadenas de efectos indirectos, círculos viciosos o virtuosos, cruces con otros temas, casos comparables, un mapa de relaciones dibujado y qué dato confirmaría o desmentiría cada relación.
+
+**Para entender y no olvidar** (técnicas de aprendizaje: recuperación activa, elaboración y repetición espaciada):
+- **🃏 Para no olvidarla / Quiz del día**: lo esencial, una imagen para anclarla, tarjetas de pregunta y respuesta que se dan vuelta con un clic y una autoevaluación con las respuestas ocultas. Conviene repasarlas al día siguiente, a los 3 días y a la semana.
+- **🎓 Explicalo con tus palabras** (método Feynman): la nota en una frase, un párrafo y en profundidad, una analogía, lo que se suele entender mal y consignas para explicarla vos, con la respuesta oculta.
+- **🗂️ Ficha para guardar**: una ficha en Markdown para Notion, Obsidian o Keep, con la idea central como afirmación, datos, etiquetas y conceptos entre [[doble corchete]] para enlazar fichas entre sí.
 
 Cada resultado se puede **descargar (.md)**, **copiar** y **escuchar** con la voz del navegador (gratis, elige una voz argentina si hay; en Windows, Edge trae Elena y Tomás).
 
