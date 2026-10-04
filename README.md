@@ -8,6 +8,7 @@ Usa los **mismos motores de IA** del Monitor: Gemini, Mistral, Groq y OpenRouter
 
 | Vista | Qué hace |
 |---|---|
+| **🏠 Inicio** | En todas las pantallas hay un botón 🏠 Inicio (arriba y abajo) para volver a Noticias. En el celular la barra lateral arranca cerrada: se abre con » arriba a la izquierda. |
 | **📰 Noticias** | Los medios de la sección elegida. Tres formas de ver: **Por medio**, **Intercalado** (la 1ª nota de cada medio, después la 2ª…) y **Por tema** (titulares agrupados por historia, ordenados por cuántos medios la tienen y si va en tapa; sin IA). Buscador que no distingue tildes ni mayúsculas. En cada nota: 🧠 para analizarla y ➕ para sumarla a un tema. |
 | **🧠 Analizar nota** | Una nota elegida, un link cualquiera o un texto pegado. Se lee completa y se elige una plantilla. Abajo, **💬 Preguntale a la nota**. |
 | **🗂️ Tema** | Varias notas de distintos medios sobre una misma historia (buscadas por palabra en la sección o en todas, o juntadas con ➕). Lee completas hasta 8 (una por medio primero) y las analiza juntas. |
@@ -33,16 +34,26 @@ Debajo de **✦ Generar con IA** está la barra para copiar:
 
 Cada resultado de la IA de la app también tiene **📋 Copiar el resultado**, para llevarlo a un mail, un chat o un documento.
 
-## 🎧 Escuchar los títulos (modo auto)
+## 🎧 Escuchar las noticias (modo auto)
 
-Como el Modo auto de Panorama: la vista **🎧 Escuchar** (o el botón en Noticias) lee los títulos uno tras otro con la voz del navegador, gratis y sin IA, y pasa sola a la nota siguiente.
+Como el Modo auto de Panorama, pensado para el celular: el reproductor aparece arriba de todo, con botones grandes para el pulgar (▶ grande en el medio, anterior y siguiente a los costados) y las opciones debajo. La vista **🎧 Escuchar** (o el botón en Noticias) lee las noticias una tras otra con la voz del navegador, gratis y sin IA, y pasa sola a la siguiente.
 
-- **Qué escuchar:** la sección actual, varias secciones o el tema armado.
+- **Qué escuchar:** la sección actual, **un solo medio** (por ejemplo Olé · Últimas u Olé · Home, de cualquier sección, eligiendo cuántas notas), varias secciones o el tema armado.
+- **Qué leer de cada nota:** *Solo títulos*, *Títulos y bajadas* o *Nota completa* (el título, la bajada y el texto entero, párrafo por párrafo; hasta 30 notas por vez; las que tienen muro de pago quedan con título y bajada).
 - **Orden:** *Intercalado* (la principal de cada medio, después la segunda…) o *Medio por medio* (anuncia "Ahora, Clarín").
-- **Notas por medio**, **leer también la bajada**, **velocidad** y **voz** (elige sola una argentina; en Windows, con Edge, Elena o Tomás suenan naturales).
-- Controles: ⏮ anterior, ▶/⏸, ⏭ siguiente, ⏩ próximo medio y 🔗 abrir la nota. Teclado: espacio, ← →, ↑ ↓. En el celular, deslizar el dedo.
-- **Saltea las ya escuchadas** y **sigue donde quedaste** (se guarda en el navegador). Los títulos en otros idiomas se leen traducidos.
+- **Velocidad** y **voz** (elige sola una argentina; en Windows, con Edge, Elena o Tomás suenan naturales).
+- Controles: ⏮ nota anterior, ⏪ párrafo anterior, ▶/⏸, ⏩ párrafo siguiente, ⏭ nota siguiente, próximo medio y 🔗 abrir la nota. Teclado: espacio, ← →, ↑ ↓, [ ]. En el celular, deslizar el dedo.
+- **Saltea las ya escuchadas** y **sigue donde quedaste** (se guarda en el navegador). Los títulos en otros idiomas se leen traducidos; el texto completo, en su idioma.
 - Mientras suena, intenta que la pantalla no se apague: si el celular se bloquea, el navegador corta la voz.
+
+## En el celular
+
+La app está pensada para usarse sobre todo en el celular:
+- **Menú fijo abajo** (Noticias, Escuchar, Nota, Tema, Día, Historial), como en las apps; se desliza de costado si no entra.
+- **Secciones arriba**, en una fila que se desliza con el dedo (ya no hace falta abrir el menú lateral).
+- **Cada nota en un renglón**, con los botones 🧠 y ➕ al costado del título.
+- **Opciones como botones grandes** para tocar, tablas de la IA que se desplazan de costado y recuadros que se adaptan al alto de la pantalla.
+- El menú lateral (medios, motores de IA, traducción) arranca cerrado: se abre con » arriba a la izquierda.
 
 ## Plantillas
 

@@ -45,7 +45,7 @@ def _recargar_modulos(*mods):
 _recargar_modulos(fuentes, ia_motores, lector, traductor, P, reproductor)
 SECCIONES, FUENTE_POR_ID = fuentes.SECCIONES, fuentes.FUENTE_POR_ID
 
-st.set_page_config(page_title="Monitor General", page_icon="📡", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Monitor General", page_icon="📡", layout="wide", initial_sidebar_state="auto")
 
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 SECCION_POR_ID = {s["id"]: s for s in SECCIONES}
@@ -66,6 +66,39 @@ st.markdown("""
           background: rgba(127,127,127,.14); margin-right:.25rem;}
 .mg-desc {font-size:.85rem; color: var(--mg-muted, #6b7280); margin:-.3rem 0 .6rem;}
 div[data-testid="stExpander"] details summary p {font-weight:600;}
+/* Tablas de la IA: se desplazan de costado en vez de romper la pantalla */
+[data-testid="stMarkdownContainer"] table {display:block; overflow-x:auto; max-width:100%;}
+/* Menú de vistas y de secciones: una sola fila que se desliza de costado */
+.st-key-vista [data-testid="stButtonGroup"] > div, .st-key-seccion [data-testid="stButtonGroup"] > div
+  {flex-wrap:nowrap !important; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;}
+.st-key-vista [data-testid="stButtonGroup"] > div::-webkit-scrollbar,
+.st-key-seccion [data-testid="stButtonGroup"] > div::-webkit-scrollbar {display:none;}
+.st-key-vista button, .st-key-seccion button {white-space:nowrap; flex:none;}
+/* Filas de notas: columnas que NO se apilan en el celular (título a la izquierda, botones a la derecha) */
+[class*="st-key-fila_"] [data-testid="stHorizontalBlock"] {flex-wrap:nowrap !important; gap:.4rem !important; align-items:center;}
+[class*="st-key-fila_"] [data-testid="stColumn"] {min-width:0 !important;}
+[class*="st-key-fila_"] [data-testid="stColumn"]:first-child {flex:1 1 auto !important; width:auto !important;}
+[class*="st-key-fila_"] [data-testid="stColumn"]:not(:first-child) {flex:0 0 auto !important; width:auto !important;}
+[class*="st-key-fila_"] [data-testid="stMarkdownContainer"] {overflow-wrap:anywhere;}
+[class*="st-key-fila_"] button {min-height:2.4rem; padding:0 .55rem;}
+
+@media (max-width: 640px) {
+  .block-container {padding: 3.6rem .75rem 6.5rem !important;}
+  h3 {font-size:1.35rem !important;}
+  .mg-tit a {font-size:1.02rem; line-height:1.3;}
+  /* Menú de vistas fijo abajo, como en las apps del celular */
+  .st-key-vista {position:fixed; left:0; right:0; bottom:0; z-index:999990; margin:0 !important;
+    padding:.4rem .4rem calc(.4rem + env(safe-area-inset-bottom)); background:#ffffff;
+    border-top:1px solid rgba(127,127,127,.25); box-shadow:0 -4px 14px rgba(0,0,0,.06);}
+  .st-key-vista button {font-size:.8rem; padding:.3rem .55rem; min-height:2.6rem;}
+  .st-key-vista label {display:none;}
+  [class*="st-key-fila_"] button {min-height:2.6rem; min-width:2.6rem;}
+  [class*="st-key-fila_"] {border-bottom:1px solid rgba(127,127,127,.12); padding-bottom:.35rem;}
+  div[data-testid="stExpander"] details summary {padding:.55rem .6rem;}
+}
+@media (max-width: 640px) and (prefers-color-scheme: dark) {
+  .st-key-vista {background:#0e1117;}
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,7 +166,7 @@ ss.setdefault("tit_tema", "")
 
 # Streamlit borra el valor de un widget cuando no se dibuja (por ejemplo, al cambiar de vista).
 # Se reasignan para que cada vista recuerde lo que el usuario eligió.
-_PERSISTIR = ("esc_alcance", "esc_secs", "esc_orden", "esc_por_medio", "modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
+_PERSISTIR = ("seccion", "esc_alcance", "esc_secs", "esc_orden", "esc_por_medio", "esc_modo", "esc_medio", "esc_cant", "modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
               "txt_cuerpo", "n_leer", "tit_tema")
 _PREFIJOS = ("pl_", "libre_", "q_", "sel_tema_")
 for _key in list(ss.keys()):
@@ -241,10 +274,11 @@ def correr(plantilla, material, ambito, clave, titulo):
     return res
 
 
-def _iframe(contenido, alto):
-    """HTML con JavaScript propio (voz del navegador, diagramas). st.iframe en Streamlit nuevo, components.html en el viejo."""
+def _iframe(contenido, alto, ajustar=False):
+    """HTML con JavaScript propio (voz del navegador, diagramas). st.iframe en Streamlit nuevo, components.html en el viejo.
+    ajustar=True: el alto se adapta al contenido (útil en el celular, donde todo se acomoda distinto)."""
     if hasattr(st, "iframe"):
-        st.iframe(contenido, height=alto)
+        st.iframe(contenido, height="content" if ajustar else alto)
     else:
         components.html(contenido, height=alto, scrolling=True)
 
@@ -288,7 +322,7 @@ document.querySelectorAll('.b').forEach(b=>b.onclick=async()=>{{
   if(u) window.open(u,'_blank','noopener');
   setTimeout(()=>document.getElementById('ok').textContent='', 6000);
 }});
-</script>""", 80 if abrir else 46)
+</script>""", 80 if abrir else 46, ajustar=True)
 
 
 def _limpiar_para_voz(t):
@@ -323,7 +357,7 @@ document.getElementById('p').onclick=()=>{{const b=document.getElementById('p');
  else if(!pausa){{pausa=true;S.pause();b.textContent='▶ Seguir';}}
  else{{pausa=false;S.resume();b.textContent='⏸ Pausa';}}}};
 document.getElementById('s').onclick=()=>{{on=false;pausa=false;S.cancel();i=0;document.getElementById('p').textContent='🔊 Escuchar';document.getElementById('e').textContent='';}};
-</script>""", 50)
+</script>""", 50, ajustar=True)
 
 
 def mermaid(code, key):
@@ -456,8 +490,12 @@ with st.sidebar:
     st.markdown("## 📡 Monitor General")
     st.caption("Los medios de Panorama, con IA para entender y resumir.")
 
-    sid = st.selectbox("Sección", [s["id"] for s in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x], key="seccion")
+    ss.setdefault("seccion", SECCIONES[0]["id"])
+    if ss.get("seccion") not in SECCION_POR_ID:
+        ss["seccion"] = SECCIONES[0]["id"]
+    sid = ss["seccion"]                       # la sección se elige en la pantalla (Noticias y Escuchar)
     seccion = SECCION_POR_ID[sid]
+    st.markdown(f"**Sección:** {seccion['nombre']}")
     fuentes_sec = seccion["fuentes"]
     langs = sorted({f["lang"] for f in fuentes_sec})
     if len(langs) > 1:
@@ -473,7 +511,7 @@ with st.sidebar:
     silencio_txt = st.text_input("🔇 Silenciar palabras", placeholder="horóscopo, quiniela", key="silenciar",
                                  help="Separadas por coma. Las notas que las mencionan no se muestran.")
     silencio = tuple(lector.norm(x).strip() for x in silencio_txt.split(",") if lector.norm(x).strip())
-    if st.button("🔄 Actualizar noticias", use_container_width=True):
+    if st.button("🔄 Actualizar noticias", width="stretch"):
         cargar_seccion.clear()
         st.rerun()
 
@@ -552,8 +590,25 @@ def preparar(notas):
 
 notas_sec = preparar(notas_de(resultado, set(medios), silencio))
 
-st.radio("Vista", VISTAS, key="vista", horizontal=True, label_visibility="collapsed")
-vista = ss.vista
+_CORTO = {"📰 Noticias": "📰 Noticias", "🎧 Escuchar": "🎧 Escuchar", "🧠 Analizar nota": "🧠 Nota",
+          "🗂️ Tema": "🗂️ Tema", "🗞️ Resumen del día": "🗞️ Día", "🕘 Historial": "🕘 Historial"}
+
+
+def _vista_cambio():
+    if ss.get("vista") is None:                       # tocar la vista actual no la deselecciona
+        ss["vista"] = ss.get("_vista_ant") or VISTAS[0]
+    ss["_vista_ant"] = ss["vista"]
+
+
+if ss.get("vista") not in VISTAS:
+    ss["vista"] = VISTAS[0]
+ss["_vista_ant"] = ss["vista"]
+if hasattr(st, "segmented_control"):
+    st.segmented_control("Vista", VISTAS, key="vista", format_func=lambda v: _CORTO.get(v, v),
+                         on_change=_vista_cambio, label_visibility="collapsed")
+else:
+    st.radio("Vista", VISTAS, key="vista", horizontal=True, label_visibility="collapsed")
+vista = ss.vista or VISTAS[0]
 
 
 def ir_a(v):
@@ -594,8 +649,64 @@ def _hora(n):
         return ""
 
 
+def _no_deseleccionar(key):
+    """En los botones segmentados, tocar el elegido lo deselecciona: se vuelve al valor anterior."""
+    if ss.get(key) is None:
+        ss[key] = ss.get(f"_{key}_ant")
+    else:
+        ss[f"_{key}_ant"] = ss[key]
+
+
+def elegir(etiqueta, opciones, key, ayuda=None):
+    """Opciones como botones grandes, cómodos de tocar en el celular (con radio de respaldo)."""
+    ss.setdefault(key, opciones[0])
+    if ss.get(key) not in opciones:
+        ss[key] = opciones[0]
+    ss[f"_{key}_ant"] = ss.get(f"_{key}_ant") or ss[key]
+    if hasattr(st, "segmented_control"):
+        st.segmented_control(etiqueta, opciones, key=key, help=ayuda, on_change=_no_deseleccionar, args=(key,))
+    else:
+        st.radio(etiqueta, opciones, key=key, help=ayuda, horizontal=True)
+    return ss.get(key) or opciones[0]
+
+
+def _seccion_cambio():
+    if ss.get("seccion") is None:
+        ss["seccion"] = ss.get("_seccion_ant") or SECCIONES[0]["id"]
+    ss["_seccion_ant"] = ss["seccion"]
+
+
+def selector_seccion():
+    """Las secciones como botones en una fila que se desliza (cómodo en el celular)."""
+    ss["_seccion_ant"] = ss.get("seccion")
+    if hasattr(st, "segmented_control"):
+        st.segmented_control("Sección", [x["id"] for x in SECCIONES], key="seccion", on_change=_seccion_cambio,
+                             format_func=lambda x: SECCION_POR_ID[x].get("corto", SECCION_POR_ID[x]["nombre"]),
+                             label_visibility="collapsed")
+    else:
+        st.selectbox("Sección", [x["id"] for x in SECCIONES], key="seccion", format_func=lambda x: NOMBRE_SECCION[x])
+
+
+def boton_inicio(lugar):
+    if ss.vista != VISTAS[0]:
+        st.button("🏠 Inicio", key=f"inicio_{lugar}", on_click=ir_a, args=(VISTAS[0],),
+                  help="Volver a las noticias", type="secondary")
+
+
+def _minutos(m):
+    m = max(1, round(m))
+    return "1 minuto" if m == 1 else f"unos {m} minutos"
+
+
+def fila(clave, proporciones=(14, 1, 1)):
+    """Columnas en un contenedor con clave: el CSS evita que se apilen en el celular."""
+    with st.container(key=f"fila_{clave}"):
+        return st.columns(list(proporciones), vertical_alignment="center", gap="small")
+
+
 def fila_nota(n, pref, con_medio=False):
-    c1, c2, c3 = st.columns([14, 1, 1], vertical_alignment="center")
+    k = _k(pref, n.get("url"), n["titulo"])
+    c1, c2, c3 = fila(k)
     meta = []
     if con_medio:
         meta.append(f"<span class='mg-dot' style='background:{n.get('color', '#888')};width:.55rem;height:.55rem'></span> {html.escape(n.get('medio', ''))}")
@@ -615,26 +726,29 @@ def fila_nota(n, pref, con_medio=False):
     bajada = f"<div class='mg-bajada'>{html.escape(n['bajada'][:220])}</div>" if n.get("bajada") else ""
     c1.markdown(f"<div class='mg-tit'><a href='{html.escape(n.get('url') or '#')}' target='_blank'>{html.escape(titulo)}</a></div>{original}"
                 f"<div class='mg-meta'>{' · '.join(meta)}</div>{bajada}", unsafe_allow_html=True)
-    k = _k(pref, n.get("url"), n["titulo"])
     c2.button("🧠", key=f"an_{k}", help="Analizar con IA", on_click=elegir_nota, args=(n,))
     c3.button("➕", key=f"te_{k}", help="Sumar al tema", on_click=sumar_a_tema, args=(n,))
 
 
 # ═══════════════════════ 📰 NOTICIAS ═══════════════════════
+boton_inicio("arriba")
+
 if vista == "📰 Noticias":
+    selector_seccion()
     ok = [r for r in resultado if r["id"] in medios]
     n_ok = sum(1 for r in ok if r["estado"] == "ok")
     st.markdown(f"### {seccion['nombre']}")
     st.caption(f"{seccion.get('desc', '')} · {n_ok} de {len(ok)} medios respondieron · {len(notas_sec)} notas · "
                f"actualizado {datetime.now(TZ).strftime('%H:%M')}")
-    st.button("🎧 Escuchar los títulos de la sección", on_click=ir_a, args=("🎧 Escuchar",))
+    st.button("🎧 Escuchar las noticias de la sección", on_click=ir_a, args=("🎧 Escuchar",))
     if ss.tema["notas"]:
         st.info(f"🗂️ Tema en armado: **{len(ss.tema['notas'])} notas**.", icon="➕")
         st.button("Ir al tema →", on_click=ir_a, args=("🗂️ Tema",))
 
-    c1, c2 = st.columns([2, 1])
+    c1, c2 = st.columns([3, 2])
     q = c1.text_input("🔎 Buscar en la sección", placeholder="Palabras, separadas por coma", key=f"q_{sid}")
-    modo = c2.radio("Ver", ["Por medio", "Intercalado", "Por tema"], horizontal=True, key="modo_noticias")
+    with c2:
+        modo = elegir("Ver", ["Por medio", "Intercalado", "Por tema"], "modo_noticias")
 
     if q.strip():
         encontradas = lector.buscar(notas_sec, q)
@@ -665,8 +779,8 @@ if vista == "📰 Noticias":
         for g in grupos[:40]:
             chips = f"<span class='mg-chip'>{len(g['medios'])} medios</span>" + ("<span class='mg-chip'>en tapa</span>" if g["rmin"] == 0 else "")
             st.markdown(f"{chips} **{html.escape(g['titulo'])}**", unsafe_allow_html=True)
-            cc = st.columns([3, 1, 1])
-            cc[0].caption(" · ".join(g["medios"][:8]) + (" …" if len(g["medios"]) > 8 else ""))
+            cc = fila("g" + _k(g["titulo"]), (4, 1, 1))
+            cc[0].caption(" · ".join(g["medios"][:6]) + (" …" if len(g["medios"]) > 6 else ""))
             cc[1].button("🗂️ Tema", key=f"gt_{_k(g['titulo'])}", on_click=mandar_tema, args=(g["titulo"], g["notas"]),
                          help="Analizar todas las notas de esta historia")
             cc[2].button("🧠 Nota", key=f"gn_{_k(g['titulo'])}", on_click=elegir_nota, args=(g["notas"][0],),
@@ -680,53 +794,96 @@ if vista == "📰 Noticias":
 
 # ═══════════════════════ 🎧 ESCUCHAR ═══════════════════════
 elif vista == "🎧 Escuchar":
-    st.markdown("### 🎧 Escuchar los títulos")
-    st.caption("Lee los títulos uno tras otro con la voz del navegador (gratis, no usa la IA) y pasa solo a la "
-               "siguiente nota. Ideal para el auto o mientras hacés otra cosa. Los títulos en otros idiomas se leen "
-               "traducidos si está prendido 🌐 en la barra lateral.")
-    c1, c2, c3 = st.columns([2, 2, 1])
-    ss.setdefault("esc_alcance", "Esta sección")
-    alcance = c1.radio("Qué escuchar", ["Esta sección", "Varias secciones", "El tema armado"], key="esc_alcance")
-    ss.setdefault("esc_orden", "Intercalado")
-    orden = c2.radio("Orden", ["Intercalado", "Medio por medio"], key="esc_orden",
-                     help="Intercalado: la nota principal de cada medio, después la segunda… "
-                          "Medio por medio: todas las de un medio y después el siguiente (anuncia cada medio).")
-    ss.setdefault("esc_por_medio", 5)
-    por_medio = c3.number_input("Notas por medio", 1, 30, key="esc_por_medio")
-    if alcance == "Esta sección":
-        lista, clave = notas_sec, f"sec-{sid}"
-    elif alcance == "Varias secciones":
-        ss.setdefault("esc_secs", ["argentina", "economia", "mundo"])
-        secs_e = st.multiselect("Secciones", [x["id"] for x in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x],
-                                key="esc_secs")
-        lista = []
-        with st.spinner("Leyendo las secciones…"):
-            for x in secs_e:
-                lista += notas_de(cargar_seccion(x, limite), palabras=silencio)
-        lista, clave = preparar(lista), "secs-" + "-".join(secs_e)
-    else:
-        lista, clave = preparar(list(ss.tema["notas"])), "tema-" + _k(ss.tema["titulo"])
+    st.markdown("### 🎧 Escuchar las noticias")
+    st.caption("Se leen una tras otra con la voz del teléfono o la compu (gratis, sin IA).")
+    MAX_COMPLETAS = 30
+    zona_reproductor = st.container()          # el reproductor va arriba: en el celular, abrir y tocar ▶
+    st.markdown("##### ⚙️ Qué escuchar")
+    alcance = elegir("Notas de", ["Esta sección", "Un medio", "Varias secciones", "El tema armado"], "esc_alcance")
+    modo_txt = elegir("Qué leer de cada nota", ["Solo títulos", "Títulos y bajadas", "Nota completa"], "esc_modo",
+                      ayuda=f"Nota completa: lee el título, la bajada y el texto entero, párrafo por párrafo "
+                            f"(hasta {MAX_COMPLETAS} notas por vez). Las notas con muro de pago pueden quedar solo con título.")
+    modo = {"Solo títulos": "titulos", "Títulos y bajadas": "bajadas", "Nota completa": "completa"}[modo_txt]
+
+    orden = "intercalado"
+    if alcance == "Un medio":
+        todos = [f["id"] for x in SECCIONES for f in x["fuentes"]]
+        ss.setdefault("esc_medio", medios[0] if medios else todos[0])
+        c1, c2 = st.columns([3, 1])
+        fid = c1.selectbox("Medio", todos, key="esc_medio",
+                           format_func=lambda x: f"{FUENTE_POR_ID[x]['nombre']}  ·  {NOMBRE_SECCION[FUENTE_POR_ID[x]['seccion']]}")
+        ss.setdefault("esc_cant", 20)
+        cant = c2.number_input("Cuántas notas", 1, 60, key="esc_cant")
+        f = FUENTE_POR_ID[fid]
+        with st.spinner(f"Leyendo {f['nombre']}…"):
+            res_f = cargar_seccion(f["seccion"], max(limite, int(cant)))
+        lista = [n for r in res_f if r["id"] == fid for n in r["items"] if not silenciada(n, silencio)]
+        lista, clave, por_medio = preparar(lista), f"medio-{fid}", int(cant)
         if not lista:
-            st.info("Todavía no armaste un tema: juntalo en **🗂️ Tema** o con ➕ en Noticias.")
+            st.warning(f"{f['nombre']} no respondió ahora. Probá con 🔄 Actualizar noticias en un rato.")
+    else:
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            orden_txt = elegir("Orden", ["Intercalado", "Medio por medio"], "esc_orden",
+                               ayuda="Intercalado: la nota principal de cada medio, después la segunda… "
+                                     "Medio por medio: todas las de un medio y después el siguiente (anuncia cada medio).")
+        orden = "medio" if orden_txt == "Medio por medio" else "intercalado"
+        ss.setdefault("esc_por_medio", 5)
+        por_medio = int(c2.number_input("Notas por medio", 1, 30, key="esc_por_medio"))
+        if alcance == "Esta sección":
+            selector_seccion()
+            lista, clave = notas_sec, f"sec-{sid}"
+        elif alcance == "Varias secciones":
+            ss.setdefault("esc_secs", ["argentina", "economia", "mundo"])
+            secs_e = st.multiselect("Secciones", [x["id"] for x in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x],
+                                    key="esc_secs")
+            lista = []
+            with st.spinner("Leyendo las secciones…"):
+                for x in secs_e:
+                    lista += notas_de(cargar_seccion(x, limite), palabras=silencio)
+            lista, clave = preparar(lista), "secs-" + "-".join(secs_e)
+        else:
+            lista, clave = preparar(list(ss.tema["notas"])), "tema-" + _k(ss.tema["titulo"])
+            if not lista:
+                st.info("Todavía no armaste un tema: juntalo en **🗂️ Tema** o con ➕ en Noticias.")
     vistos, unicas = set(), []
     for n in lista:
         if n.get("url") not in vistos or not n.get("url"):
             vistos.add(n.get("url"))
             unicas.append(n)
-    cola = reproductor.ordenar(unicas, "medio" if orden == "Medio por medio" else "intercalado", int(por_medio))
-    st.caption(f"{len(cola)} títulos · unos {max(1, round(len(cola) * 8 / 60))} minutos")
-    _iframe(reproductor.html_reproductor(cola, clave, "medio" if orden == "Medio por medio" else "intercalado"), 400)
-    st.caption("Atajos: espacio pausa · ← → nota anterior o siguiente · ↓ próximo medio · en el celular, deslizá el dedo. "
-               "Mientras suena, la pantalla no se apaga (en el celular, si se bloquea, el navegador corta la voz). "
-               "En Windows, abrí la app con Microsoft Edge para tener las voces argentinas naturales (Elena y Tomás).")
+    cola = reproductor.ordenar(unicas, orden, por_medio)
+
+    st.caption("En el celular: deslizá el dedo sobre el reproductor para pasar de nota; si se bloquea la pantalla, "
+               "el navegador corta la voz. En la compu: espacio pausa, ← → nota, ↓ próximo medio"
+               + (", [ ] párrafo" if modo == "completa" else "")
+               + ". En Windows, con Microsoft Edge tenés voces argentinas naturales (Elena y Tomás).")
+    with zona_reproductor:
+        textos = {}
+        if modo == "completa" and cola:
+            if len(cola) > MAX_COMPLETAS:
+                st.caption(f"Para la nota completa se toman las primeras {MAX_COMPLETAS} de {len(cola)}.")
+                cola = cola[:MAX_COMPLETAS]
+            with st.spinner(f"Leyendo {len(cola)} notas completas (la primera vez tarda unos segundos)…"):
+                arts = cargar_articulos(cola)
+            textos = {n.get("url"): a.get("parrafos") or [] for n, a in zip(cola, arts) if n.get("url")}
+            n_ok = sum(1 for p in textos.values() if p)
+            palabras = sum(len(" ".join(p).split()) for p in textos.values())
+            st.caption(f"{len(cola)} notas · {n_ok} con el texto completo · {_minutos(palabras / 150 + len(cola) * 0.2)}"
+                       + (" · las que no se pudieron leer van con título y bajada" if n_ok < len(cola) else ""))
+            if any(n.get("lang", "es") != "es" for n in cola):
+                st.caption("🌐 El texto de las notas en otros idiomas se lee en su idioma original (el título, traducido).")
+        else:
+            seg = 8 if modo == "titulos" else 16
+            st.caption(f"{len(cola)} notas · {_minutos(len(cola) * seg / 60)}")
+        alto = 440 if modo == "completa" else 400
+        _iframe(reproductor.html_reproductor(cola, f"{clave}-{modo}", orden, modo, textos), alto + 140, ajustar=True)
 
 
 # ═══════════════════════ 🧠 ANALIZAR NOTA ═══════════════════════
 elif vista == "🧠 Analizar nota":
     st.markdown("### 🧠 Analizar una nota")
     ss.setdefault("origen_nota", "Nota elegida" if ss.nota_sel else "Pegar un link")
-    origen = st.radio("Origen", ["Nota elegida", "Pegar un link", "Pegar un texto"], horizontal=True,
-                      key="origen_nota", label_visibility="collapsed")
+    origen = elegir("Origen", ["Nota elegida", "Pegar un link", "Pegar un texto"], "origen_nota")
     art, clave_nota = None, None
 
     if origen == "Nota elegida":
@@ -770,7 +927,10 @@ elif vista == "🧠 Analizar nota":
                    "parrafos": [p for p in re.split(r"\n\s*\n|\n", cuerpo) if p.strip()], "url": "", "lang": "es"}
 
     if art:
-        col_a, col_b = st.columns([3, 2], gap="large")
+        if art.get("imagen"):
+            col_a, col_b = st.columns([3, 2], gap="large")
+        else:                                   # sin foto: una sola columna (en el celular no deja un hueco)
+            col_a, col_b = st.container(), None
         with col_a:
             st.markdown(f"#### {art['titulo']}")
             meta = " · ".join(x for x in [art.get("medio"), f"{sum(len(p.split()) for p in art.get('parrafos') or [])} palabras"
@@ -780,13 +940,11 @@ elif vista == "🧠 Analizar nota":
                 st.markdown(f"*{art['bajada']}*")
             if art.get("parrafos"):
                 with st.expander("Leer la nota"):
-                    if art.get("imagen"):
-                        st.image(art["imagen"], use_container_width=True)
                     for p in art["parrafos"]:
                         st.markdown(p)
-        with col_b:
-            if art.get("imagen"):
-                st.image(art["imagen"], use_container_width=True)
+        if col_b is not None:
+            with col_b:
+                st.image(art["imagen"], width="stretch")
 
         st.markdown("##### ¿Qué querés hacer con la nota?")
         if art.get("lang", "es") != "es":
@@ -813,7 +971,7 @@ elif vista == "🧠 Analizar nota":
             c1, c2 = st.columns([5, 1], vertical_alignment="bottom")
             preg = c1.text_input("Pregunta", placeholder="¿Qué significa…? ¿Quién es…? ¿Qué cambia para…?",
                                  label_visibility="collapsed")
-            enviar = c2.form_submit_button("Preguntar", use_container_width=True)
+            enviar = c2.form_submit_button("Preguntar", width="stretch")
         if enviar and preg.strip():
             if not hay_ia():
                 st.error("Configurá un motor de IA en el panel izquierdo para preguntar.")
@@ -880,7 +1038,7 @@ elif vista == "🗂️ Tema":
         tema["titulo"] = st.text_input("Nombre del tema", key="tit_tema")
         st.markdown(f"**{len(tema['notas'])} notas** de {len({n.get('medio') for n in tema['notas']})} medios")
         for i, n in enumerate(list(tema["notas"])):
-            c1, c2 = st.columns([15, 1], vertical_alignment="center")
+            c1, c2 = fila(f"tema{i}_{_k(n.get('url'))}", (15, 1))
             c1.markdown(f"<span class='mg-chip'>{html.escape(n.get('medio', ''))}</span> "
                         f"<a href='{html.escape(n.get('url') or '#')}' target='_blank'>{html.escape(n.get('titulo_es') or n['titulo'])}</a>",
                         unsafe_allow_html=True)
@@ -898,7 +1056,7 @@ elif vista == "🗂️ Tema":
         clave_tema = "tema-" + _k(tema["titulo"], *[n.get("url") for n in tema["notas"]])
         if plantilla:
             b1, b2 = st.columns([1, 3])
-            gen = b1.button("✦ Generar con IA", type="primary", key="gen_tema", use_container_width=True)
+            gen = b1.button("✦ Generar con IA", type="primary", key="gen_tema", width="stretch")
             armar = b2.button("📋 Armar el pedido para ChatGPT, Claude o Gemini", key="armar_tema")
             if gen or armar or ss.get("pedido_tema_clave") == (clave_tema, plantilla["id"], n_leer):
                 with st.spinner(f"Leyendo {len(a_leer)} notas completas…"):
@@ -984,4 +1142,5 @@ else:
             st.markdown(f"**{r['titulo'][:120]}**")
             mostrar_resultado(r, expandido=False)
 
+boton_inicio("abajo")
 st.caption(f"🤖 IA: {nombre_motor(ss.get('motor_ia', 'auto'))} — {ia_motores.descripcion_cadena()}")
