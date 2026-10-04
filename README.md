@@ -33,6 +33,17 @@ Debajo de **✦ Generar con IA** está la barra para copiar:
 
 Cada resultado de la IA de la app también tiene **📋 Copiar el resultado**, para llevarlo a un mail, un chat o un documento.
 
+## 🎧 Escuchar los títulos (modo auto)
+
+Como el Modo auto de Panorama: la vista **🎧 Escuchar** (o el botón en Noticias) lee los títulos uno tras otro con la voz del navegador, gratis y sin IA, y pasa sola a la nota siguiente.
+
+- **Qué escuchar:** la sección actual, varias secciones o el tema armado.
+- **Orden:** *Intercalado* (la principal de cada medio, después la segunda…) o *Medio por medio* (anuncia "Ahora, Clarín").
+- **Notas por medio**, **leer también la bajada**, **velocidad** y **voz** (elige sola una argentina; en Windows, con Edge, Elena o Tomás suenan naturales).
+- Controles: ⏮ anterior, ▶/⏸, ⏭ siguiente, ⏩ próximo medio y 🔗 abrir la nota. Teclado: espacio, ← →, ↑ ↓. En el celular, deslizar el dedo.
+- **Saltea las ya escuchadas** y **sigue donde quedaste** (se guarda en el navegador). Los títulos en otros idiomas se leen traducidos.
+- Mientras suena, intenta que la pantalla no se apague: si el celular se bloquea, el navegador corta la voz.
+
 ## Plantillas
 
 **Una nota**
@@ -65,6 +76,7 @@ Para sumar o cambiar una plantilla, editá `plantillas.py`: cada una es un dicci
 | `fuentes.py` | Secciones y medios (el mismo de Panorama) |
 | `ia_motores.py` | Los motores de IA (el mismo del Monitor) |
 | `traductor.py` | Traducción de títulos en tandas, con memoria |
+| `reproductor.py` | El reproductor de voz de 🎧 Escuchar |
 
 ## Probar en tu computadora
 
@@ -81,6 +93,13 @@ streamlit run app.py
 3. **Settings → Secrets**: pegá el contenido de `.streamlit/secrets.toml.example` con tus claves. Alcanza con una (Gemini es la más fácil y es gratis).
 
 También se pueden pegar las claves en la barra lateral (🔑 Claves), y duran lo que dura la sesión.
+
+## Olé en Deportes
+
+En la sección Deportes, Olé aparece dos veces, con los lectores propios del Monitor deportivo y más notas que el resto de los medios:
+
+- **Olé · Home**: la portada de ole.com.ar en el orden en que aparece (la primera es la nota principal), hasta 40 notas.
+- **Olé · Últimas**: el listado de ole.com.ar/ultimas-noticias, con lo último publicado aunque nunca pise la portada, hasta 50 notas. Si esa página no responde, usa el feed RSS de Olé y después Google News.
 
 ## Cómo lee las noticias
 

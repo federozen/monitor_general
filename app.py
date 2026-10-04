@@ -25,6 +25,7 @@ import ia_motores
 import lector
 import plantillas as P
 import traductor
+import reproductor
 
 
 def _recargar_modulos(*mods):
@@ -41,7 +42,7 @@ def _recargar_modulos(*mods):
             m._CARGADO = time.time()
 
 
-_recargar_modulos(fuentes, ia_motores, lector, traductor, P)
+_recargar_modulos(fuentes, ia_motores, lector, traductor, P, reproductor)
 SECCIONES, FUENTE_POR_ID = fuentes.SECCIONES, fuentes.FUENTE_POR_ID
 
 st.set_page_config(page_title="Monitor General", page_icon="📡", layout="wide", initial_sidebar_state="expanded")
@@ -49,7 +50,7 @@ st.set_page_config(page_title="Monitor General", page_icon="📡", layout="wide"
 TZ = ZoneInfo("America/Argentina/Buenos_Aires")
 SECCION_POR_ID = {s["id"]: s for s in SECCIONES}
 NOMBRE_SECCION = {s["id"]: s["nombre"] for s in SECCIONES}
-VISTAS = ["📰 Noticias", "🧠 Analizar nota", "🗂️ Tema", "🗞️ Resumen del día", "🕘 Historial"]
+VISTAS = ["📰 Noticias", "🎧 Escuchar", "🧠 Analizar nota", "🗂️ Tema", "🗞️ Resumen del día", "🕘 Historial"]
 NOMBRES_IDIOMA = {"es": "español", "en": "inglés", "fr": "francés", "it": "italiano", "de": "alemán", "pt": "portugués"}
 
 st.markdown("""
@@ -132,7 +133,7 @@ ss.setdefault("tit_tema", "")
 
 # Streamlit borra el valor de un widget cuando no se dibuja (por ejemplo, al cambiar de vista).
 # Se reasignan para que cada vista recuerde lo que el usuario eligió.
-_PERSISTIR = ("modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
+_PERSISTIR = ("esc_alcance", "esc_secs", "esc_orden", "esc_por_medio", "modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
               "txt_cuerpo", "n_leer", "tit_tema")
 _PREFIJOS = ("pl_", "libre_", "q_", "sel_tema_")
 for _key in list(ss.keys()):
@@ -626,6 +627,7 @@ if vista == "📰 Noticias":
     st.markdown(f"### {seccion['nombre']}")
     st.caption(f"{seccion.get('desc', '')} · {n_ok} de {len(ok)} medios respondieron · {len(notas_sec)} notas · "
                f"actualizado {datetime.now(TZ).strftime('%H:%M')}")
+    st.button("🎧 Escuchar los títulos de la sección", on_click=ir_a, args=("🎧 Escuchar",))
     if ss.tema["notas"]:
         st.info(f"🗂️ Tema en armado: **{len(ss.tema['notas'])} notas**.", icon="➕")
         st.button("Ir al tema →", on_click=ir_a, args=("🗂️ Tema",))
@@ -674,6 +676,49 @@ if vista == "📰 Noticias":
                     for n in g["notas"]:
                         fila_nota(n, "g" + _k(g["titulo"]), con_medio=True)
             st.divider()
+
+
+# ═══════════════════════ 🎧 ESCUCHAR ═══════════════════════
+elif vista == "🎧 Escuchar":
+    st.markdown("### 🎧 Escuchar los títulos")
+    st.caption("Lee los títulos uno tras otro con la voz del navegador (gratis, no usa la IA) y pasa solo a la "
+               "siguiente nota. Ideal para el auto o mientras hacés otra cosa. Los títulos en otros idiomas se leen "
+               "traducidos si está prendido 🌐 en la barra lateral.")
+    c1, c2, c3 = st.columns([2, 2, 1])
+    ss.setdefault("esc_alcance", "Esta sección")
+    alcance = c1.radio("Qué escuchar", ["Esta sección", "Varias secciones", "El tema armado"], key="esc_alcance")
+    ss.setdefault("esc_orden", "Intercalado")
+    orden = c2.radio("Orden", ["Intercalado", "Medio por medio"], key="esc_orden",
+                     help="Intercalado: la nota principal de cada medio, después la segunda… "
+                          "Medio por medio: todas las de un medio y después el siguiente (anuncia cada medio).")
+    ss.setdefault("esc_por_medio", 5)
+    por_medio = c3.number_input("Notas por medio", 1, 30, key="esc_por_medio")
+    if alcance == "Esta sección":
+        lista, clave = notas_sec, f"sec-{sid}"
+    elif alcance == "Varias secciones":
+        ss.setdefault("esc_secs", ["argentina", "economia", "mundo"])
+        secs_e = st.multiselect("Secciones", [x["id"] for x in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x],
+                                key="esc_secs")
+        lista = []
+        with st.spinner("Leyendo las secciones…"):
+            for x in secs_e:
+                lista += notas_de(cargar_seccion(x, limite), palabras=silencio)
+        lista, clave = preparar(lista), "secs-" + "-".join(secs_e)
+    else:
+        lista, clave = preparar(list(ss.tema["notas"])), "tema-" + _k(ss.tema["titulo"])
+        if not lista:
+            st.info("Todavía no armaste un tema: juntalo en **🗂️ Tema** o con ➕ en Noticias.")
+    vistos, unicas = set(), []
+    for n in lista:
+        if n.get("url") not in vistos or not n.get("url"):
+            vistos.add(n.get("url"))
+            unicas.append(n)
+    cola = reproductor.ordenar(unicas, "medio" if orden == "Medio por medio" else "intercalado", int(por_medio))
+    st.caption(f"{len(cola)} títulos · unos {max(1, round(len(cola) * 8 / 60))} minutos")
+    _iframe(reproductor.html_reproductor(cola, clave, "medio" if orden == "Medio por medio" else "intercalado"), 400)
+    st.caption("Atajos: espacio pausa · ← → nota anterior o siguiente · ↓ próximo medio · en el celular, deslizá el dedo. "
+               "Mientras suena, la pantalla no se apaga (en el celular, si se bloquea, el navegador corta la voz). "
+               "En Windows, abrí la app con Microsoft Edge para tener las voces argentinas naturales (Elena y Tomás).")
 
 
 # ═══════════════════════ 🧠 ANALIZAR NOTA ═══════════════════════

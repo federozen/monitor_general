@@ -354,7 +354,129 @@ def _leer_varios_rss(f, cant):
     return principal + unicos
 
 
+# ─────────────────────────── Olé (lectores del Monitor deportivo) ───────────────────────────
+_OLE = "https://www.ole.com.ar"
+_OLE_SKIP = ["/autor/", "/autores/", "/firma/", "/columnistas/", "/tag/", "/tags/", "/categoria/", "/seccion/",
+             "/author/", "tag=", "/tema/", "mailto:", "javascript:", "#"]
+
+
+def _ole_url(href):
+    if not href or any(s in href for s in _OLE_SKIP):
+        return None
+    if href.startswith("//"):
+        href = "https:" + href
+    elif href.startswith("/"):
+        href = _OLE + href
+    if not href.startswith("http"):
+        return None
+    return href
+
+
+def _ole_es_nota(u):
+    return bool(u) and "ole.com.ar" in u and (u.split("?")[0].endswith(".html") or _parece_nota(u, _OLE))
+
+
+def extraer_ole_home(html, limite):
+    """Portada de Olé en el orden en que aparece (el puesto 0 es la nota principal).
+    Busca el link de cada título escalando por el HTML y prioriza los que terminan en .html."""
+    soup = BeautifulSoup(html, "html.parser")
+    notas, vistos, urls = [], set(), set()
+
+    def mejor_link(tel, card):
+        cands = []
+        p = tel.find_parent("a")
+        if p:
+            cands.append(p.get("href", ""))
+        hijo = tel.find("a")
+        if hijo:
+            cands.append(hijo.get("href", ""))
+        cands += [a.get("href", "") for a in card.find_all("a", href=True)]
+        padre = card.parent
+        for _ in range(4):
+            if not padre or padre.name in ("body", "html", "[document]"):
+                break
+            if padre.name == "a":
+                cands.append(padre.get("href", ""))
+            padre = padre.parent
+        cands = [u for u in (_ole_url(c) for c in cands) if _ole_es_nota(u)]
+        html_ = [u for u in cands if u.split("?")[0].endswith(".html")]
+        return (html_ or cands or [None])[0]
+
+    tarjetas = soup.select("article, [class*=card], [class*=nota], [class*=story], [class*=article], [class*=item]")
+    for card in tarjetas:
+        if len(notas) >= limite:
+            break
+        tel = None
+        for ts in ("h1", "h2", "h3", "h4", "[class*=title]", "[class*=titular]", "[class*=headline]"):
+            tel = card.select_one(ts)
+            if tel:
+                break
+        if not tel:
+            continue
+        t = " ".join(tel.get_text(" ", strip=True).split())
+        if len(t) < 20 or len(t) > 300 or t in vistos:
+            continue
+        u = mejor_link(tel, card)
+        if not u or u in urls:
+            continue
+        vistos.add(t)
+        urls.add(u)
+        notas.append({"titulo": t, "url": u, "imagen": get_imagen(card), "fecha": None, "bajada": ""})
+    if len(notas) < 8:
+        for el in soup.select("h2 a[href], h3 a[href], a h2, a h3"):
+            if len(notas) >= limite:
+                break
+            a = el if el.name == "a" else el.find_parent("a")
+            t = " ".join(el.get_text(" ", strip=True).split())
+            u = _ole_url(a.get("href", "")) if a else None
+            if _ole_es_nota(u) and 20 <= len(t) <= 300 and t not in vistos and u not in urls:
+                vistos.add(t)
+                urls.add(u)
+                notas.append({"titulo": t, "url": u, "imagen": "", "fecha": None, "bajada": ""})
+    return notas[:limite]
+
+
+def extraer_ole_ultimas(html, limite):
+    """https://www.ole.com.ar/ultimas-noticias: todo lo publicado, también lo que nunca pisa la portada.
+    Usa el atributo data-noteid de cada nota (estable) y, si no está, las clases del listado."""
+    soup = BeautifulSoup(html, "html.parser")
+    conts = soup.select("div[data-noteid]") or soup.select("li[class*='listado'], [class*='listado'] article")
+    notas, urls = [], set()
+    for c in conts:
+        if len(notas) >= limite:
+            break
+        a = c.find("a", href=True)
+        u = _ole_url(a["href"]) if a else None
+        if not u or u in urls:
+            continue
+        tel = c.find(["h1", "h2", "h3", "h4"])
+        t = " ".join((tel.get_text(" ", strip=True) if tel else a.get_text(" ", strip=True)).split())
+        if len(t) < 16:   # último recurso: el título sale del link
+            t = re.sub(r"^\d+-", "", u.rstrip("/").split("/")[-1].replace(".html", "")).replace("-", " ").capitalize()
+            if len(t) < 16:
+                continue
+        bajada = c.find("p")
+        urls.add(u)
+        notas.append({"titulo": t[:250], "url": u, "imagen": get_imagen(c), "fecha": None,
+                      "bajada": bajada.get_text(" ", strip=True)[:280] if bajada else ""})
+    return notas
+
+
 def _leer_directo(f, limite):
+    if f.get("tipo") == "ole_home":
+        return extraer_ole_home(_get(f["url"]).text, limite)
+    if f.get("tipo") == "ole_ultimas":
+        notas = []
+        try:
+            notas = extraer_ole_ultimas(_get(f["url"]).text, limite)
+        except Exception:
+            pass
+        if len(notas) < 5 and f.get("rss_respaldo"):
+            try:
+                notas = _leer_rss(f["rss_respaldo"], limite) or notas
+            except Exception:
+                pass
+        return notas
     if f.get("rss"):
         return _leer_varios_rss(f, limite * (3 if f.get("filtro_ia") else 1))
     if f.get("wp"):
@@ -370,6 +492,7 @@ def _leer_directo(f, limite):
 
 def leer_fuente(f, limite=MAX_POR_MEDIO):
     """Lee un medio. Si falla o no trae notas, usa Google News como respaldo."""
+    limite = max(limite, f.get("minimo", 0))       # Olé trae más notas que el resto
     t0, via, error, notas = time.time(), "directo", None, []
     try:
         notas = _leer_directo(f, limite)

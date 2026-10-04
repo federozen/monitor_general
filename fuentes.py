@@ -8,6 +8,9 @@ Campos:
   wp         True si es un sitio WordPress (se intenta /feed/ primero)
   q          búsqueda de Google News para usar como respaldo (o como fuente principal si la url es de news.google.com)
   filtro_ia  True para quedarse solo con las notas sobre inteligencia artificial (feeds de tecnología en general)
+  tipo       lector propio: "ole_home" (portada de Olé) u "ole_ultimas" (listado de últimas noticias de Olé)
+  minimo     cantidad mínima de notas a traer de ese medio, aunque en la barra lateral se pidan menos
+  rss_respaldo  feed para usar si el lector propio no trae notas
   rss_extra  otros feeds del mismo medio que se suman a la principal (sin repetir notas), para traer más
 
 Si una fuente falla o no devuelve notas, se pide a Google News: primero con `q` si existe,
@@ -109,8 +112,12 @@ SECCIONES = [
         {"id": "misiones",   "nombre": "Misiones Online",    "url": "https://misionesonline.net/",     "color": "#2e7d32", "wp": True},
     ]},
     {"id": "deportes", "nombre": "Deportes", "desc": "Las portadas deportivas de los principales medios argentinos.", "fuentes": [
-        {"id": "dep_ole",       "nombre": "Olé",                "url": "https://www.ole.com.ar/",                 "color": "#00a846"},
-        {"id": "dep_ole_ult",   "nombre": "Olé · Últimas",      "url": "https://www.ole.com.ar/rss/ultimas-noticias/", "color": "#00a846", "rss": True, "q": "site:ole.com.ar"},
+        # Olé con lectores propios (los del Monitor deportivo) y más notas que el resto:
+        # la portada en el orden en que aparece, y el listado completo de lo último publicado.
+        {"id": "dep_ole",       "nombre": "Olé · Home",         "url": "https://www.ole.com.ar/",                 "color": "#00a846",
+         "tipo": "ole_home", "minimo": 40, "q": "site:ole.com.ar"},
+        {"id": "dep_ole_ult",   "nombre": "Olé · Últimas",      "url": "https://www.ole.com.ar/ultimas-noticias", "color": "#007a33",
+         "tipo": "ole_ultimas", "minimo": 50, "rss_respaldo": "https://www.ole.com.ar/rss/ultimas-noticias/", "q": "site:ole.com.ar"},
         {"id": "dep_tyc",       "nombre": "TyC Sports",         "url": gn("site:tycsports.com"),                  "color": "#1565c0", "rss": True},
         {"id": "dep_espn",      "nombre": "ESPN",               "url": gn("site:espn.com.ar"),                    "color": "#cc0000", "rss": True},
         {"id": "dep_infobae",   "nombre": "Infobae Deportes",   "url": "https://www.infobae.com/deportes/",       "color": "#e2701f"},
