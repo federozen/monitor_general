@@ -190,6 +190,12 @@ def cargar_seccion(sid, limite):
     return lector.leer_varias(ids, limite)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def cargar_medio(fid, cantidad):
+    """Un solo medio con más notas (botón "Traer más notas de…")."""
+    return lector.leer_fuente(FUENTE_POR_ID[fid], cantidad)
+
+
 @st.cache_resource(show_spinner=False)
 def _almacen_notas():
     """Notas completas ya leídas (por link), compartidas entre recargas."""
@@ -507,7 +513,11 @@ with st.sidebar:
     with st.expander(f"Medios ({len(medios_disp)})"):
         medios = st.multiselect("Medios", medios_disp, default=medios_disp, key=f"medios_{sid}_{'-'.join(idiomas)}",
                                 format_func=lambda x: FUENTE_POR_ID[x]["nombre"], label_visibility="collapsed")
-    limite = st.select_slider("Notas por medio", [8, 14, 20, 30], value=14, key="limite")
+    if ss.get("limite") not in (10, 20, 30, 50, 80):      # valores de versiones anteriores (8, 14…)
+        ss["limite"] = 20
+    limite = st.select_slider("Notas por medio", [10, 20, 30, 50, 80], key="limite",
+                              help="Más notas = la sección tarda un poco más en cargar la primera vez. "
+                                   "Los medios que publican poco en su portada se completan con Google News.")
     silencio_txt = st.text_input("🔇 Silenciar palabras", placeholder="horóscopo, quiniela", key="silenciar",
                                  help="Separadas por coma. Las notas que las mencionan no se muestran.")
     silencio = tuple(lector.norm(x).strip() for x in silencio_txt.split(",") if lector.norm(x).strip())
@@ -588,6 +598,10 @@ def preparar(notas):
     return notas
 
 
+# Medios a los que se les pidió "Traer más notas": se reemplazan por la versión ampliada
+ss.setdefault("mas_notas", {})
+resultado = [cargar_medio(r["id"], ss.mas_notas[r["id"]]) if ss.mas_notas.get(r["id"], 0) > limite else r
+             for r in resultado]
 notas_sec = preparar(notas_de(resultado, set(medios), silencio))
 
 _CORTO = {"📰 Noticias": "📰 Noticias", "🎧 Escuchar": "🎧 Escuchar", "🧠 Analizar nota": "🧠 Nota",
@@ -769,6 +783,10 @@ if vista == "📰 Noticias":
                     st.caption(f"No se pudo leer: {r.get('error') or 'sin notas'}")
                 for n in items:
                     fila_nota(n, r["id"])
+                actual = max(limite, ss.mas_notas.get(r["id"], 0))
+                if r["estado"] == "ok" and len(r["items"]) >= min(actual, limite) and actual < 120:
+                    st.button(f"➕ Traer más notas de {f['nombre']}", key=f"mas_{r['id']}",
+                              on_click=lambda fid=r["id"], n=actual: ss.mas_notas.__setitem__(fid, min(120, max(60, n * 2))))
     elif modo == "Intercalado":
         por_puesto = sorted(notas_sec, key=lambda n: (n.get("puesto", 0), medios.index(n["medio_id"]) if n["medio_id"] in medios else 99))
         for n in por_puesto[:150]:

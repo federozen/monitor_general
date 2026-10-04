@@ -270,6 +270,27 @@ def extraer_html(html, fuente, limite):
             noticias.append({"titulo": t, "url": url, "imagen": get_imagen(card), "fecha": None, "bajada": ""})
         if len(noticias) >= limite:
             break
+    if len(noticias) < limite:
+        # Completa con todos los links a notas del mismo sitio, en el orden en que aparecen en la portada
+        dominio = _dominio(base)
+        for a in soup.find_all("a", href=True):
+            if len(noticias) >= limite:
+                break
+            u = resolve(a.get("href", "").strip())
+            if not u or u in urls_vistas or _dominio(u) != dominio or not _parece_nota(u, base):
+                continue
+            t = ""
+            for h in a.find_all(["h1", "h2", "h3", "h4"]):
+                t = " ".join(h.get_text(" ", strip=True).split())
+                if len(t) >= 25:
+                    break
+            if len(t) < 25:
+                t = " ".join(a.get_text(" ", strip=True).split()) or " ".join((a.get("title") or "").split())
+            if not (25 <= len(t) <= 300) or t in vistos:
+                continue
+            vistos.add(t)
+            urls_vistas.add(u)
+            noticias.append({"titulo": t, "url": u, "imagen": get_imagen(a), "fecha": None, "bajada": ""})
     if len(noticias) < 6:
         for el in soup.select("h2 a[href], h3 a[href], a h2, a h3"):
             if len(noticias) >= limite:
@@ -614,8 +635,9 @@ def leer_fuente(f, limite=MAX_POR_MEDIO):
                 error = error or str(e)[:160]
         if not notas and not error:
             error = "No se encontraron notas"
-    elif f.get("minimo") and len(notas) < 10:
-        # Medios que deberían traer muchas notas (Olé): si el sitio devolvió pocas, se completa con Google News
+    elif ((f.get("minimo") and len(notas) < 10) or (limite >= 20 and len(notas) < limite // 2)) \
+            and not f.get("filtro_ia") and "news.google.com" not in f["url"]:
+        # Si el sitio devolvió pocas notas (por ejemplo, un feed corto), se completa con lo último en Google News
         q = f.get("q") or f"site:{quote(_dominio(f['url']))}"
         try:
             urls = {n.get("url") for n in notas}

@@ -112,6 +112,14 @@ En la sección Deportes, Olé aparece dos veces, con los lectores propios del Mo
 - **Olé · Home**: la portada de ole.com.ar en el orden en que aparece (la primera es la nota principal), hasta 40 notas. Combina dos lectores: el de tarjetas del Monitor deportivo y uno que toma todos los links a notas (.html) de la portada, para no depender del diseño del sitio. Si aun así trae menos de 10, completa con Google News (esas notas dicen "vía Google News").
 - **Olé · Últimas**: el listado de ole.com.ar/ultimas-noticias, con lo último publicado aunque nunca pise la portada, hasta 50 notas. Si esa página no responde, usa el feed RSS de Olé y después Google News.
 
+## Cuántas notas trae cada medio
+
+- **Notas por medio** (barra lateral): 10, 20 (viene así), 30, 50 u 80.
+- En la vista **Por medio**, al final de cada medio está **➕ Traer más notas de…**: ese medio pasa a 60 y, si lo tocás otra vez, a 120.
+- Las portadas se leen completas: además de las tarjetas principales, se suman todos los links a notas del mismo sitio, en el orden en que aparecen.
+- Si un medio trae menos de la mitad de lo pedido (por ejemplo, un feed RSS corto), se completa con lo último de ese medio en Google News (esas notas dicen "vía Google News").
+- Olé · Home y Olé · Últimas traen siempre al menos 40 y 50.
+
 ## Cómo lee las noticias
 
 Igual que Panorama: cada medio se lee de su portada o de su feed RSS; si no responde, usa **Google News** como respaldo (la nota se marca "vía Google News"). Cada sección se vuelve a leer como mucho cada 5 minutos (o con **🔄 Actualizar**). Las notas con muro de pago o de Google News pueden no leerse completas: la app avisa y la IA trabaja con título y bajada.
