@@ -611,6 +611,51 @@ _insertar(NOTA, NOTA_NUEVAS, "contexto")
 _insertar(TEMA, TEMA_NUEVAS, "profundizar")
 _insertar(DIA, DIA_NUEVAS)
 
+# ─────────── Resumen en 20 puntos (nota, tema y día) ───────────
+_REGLAS_PUNTOS = """- Cada punto es una sola idea, en una oración simple de hasta 25 palabras, con palabras de todos los días. Si aparece un término técnico, explicalo en el mismo punto.
+- Seguí el orden lógico de la historia: qué pasó, quiénes, cómo, por qué, consecuencias y qué sigue.
+- Incluí los datos concretos (cifras, fechas, nombres, lugares) donde estén.
+- Sin repetir ideas ni rellenar: si el material no da para 20 puntos, hacé menos y no inventes.
+- Formato: una lista numerada del 1 al 20, sin títulos ni introducción. Al final, una línea aparte que empiece con **En síntesis:** y resuma todo en una oración."""
+
+NOTA_PUNTOS = {
+    "id": "puntos", "icono": "📝", "nombre": "Resumen en 20 puntos",
+    "desc": "La nota entera en 20 viñetas cortas y simples, en orden, más una oración final de síntesis.",
+    "max_tokens": 2000, "nivel": "modelo",
+    "system": "Resumí la nota en 20 puntos para alguien que quiere entenderla completa sin leerla.\n"
+              + _REGLAS_PUNTOS + "\n\n" + REGLAS_NOTA,
+}
+TEMA_PUNTOS = {
+    "id": "puntos_tema", "icono": "📝", "nombre": "Resumen en 20 puntos",
+    "desc": "Todo lo que se sabe de la historia en 20 viñetas simples, con el medio de cada dato.",
+    "max_tokens": 2200, "nivel": "modelo",
+    "system": "Resumí en 20 puntos todo lo que publicaron los medios sobre esta historia, para alguien que quiere entenderla completa.\n"
+              + _REGLAS_PUNTOS + "\n- Al final de cada punto con un dato concreto, el medio entre corchetes, por ejemplo [Clarín]. "
+              "Si los medios no coinciden en algo, decilo en el punto.\n\n" + REGLAS_TEMA,
+}
+DIA_PUNTOS = {
+    "id": "puntos_dia", "icono": "📝", "nombre": "El día en 20 puntos",
+    "desc": "Las 20 noticias más importantes, una por viñeta, en lenguaje simple y repartidas entre las secciones.",
+    "max_tokens": 2000, "nivel": "modelo",
+    "system": _ROL_DIA + """
+
+Resumí el día en 20 puntos: una noticia distinta por punto, de la más importante a la menos importante, repartidas entre todas las secciones del material.
+- Cada punto: una oración simple de hasta 25 palabras que diga qué pasó y, si hace falta, por qué importa. Empezá con la sección entre corchetes, por ejemplo [Economía].
+- Formato: una lista numerada del 1 al 20, sin títulos ni introducción. Al final, una línea aparte que empiece con **En síntesis:** con el tono general del día en una oración.
+
+""" + REGLAS_DIA,
+}
+
+
+def _insertar_despues(lista, plantilla, despues_de):
+    i = next((k for k, x in enumerate(lista) if x["id"] == despues_de), len(lista) - 1) + 1
+    lista.insert(i, plantilla)
+
+
+_insertar_despues(NOTA, NOTA_PUNTOS, "resumen")
+_insertar_despues(TEMA, TEMA_PUNTOS, "correlaciones_tema")
+_insertar_despues(DIA, DIA_PUNTOS, "dia")
+
 PLANTILLAS = {"nota": NOTA, "tema": TEMA, "dia": DIA}
 
 # Plantilla libre: el usuario escribe qué quiere y se le suman las reglas del ámbito

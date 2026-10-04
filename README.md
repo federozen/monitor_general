@@ -58,13 +58,13 @@ La app está pensada para usarse sobre todo en el celular:
 ## Plantillas
 
 **Una nota**
-🧭 Entender a fondo · ⚡ Resumen express · 💼 Brief ejecutivo · 🔎 Hechos vs. opiniones · ⚖️ Las ideas en juego · 🕰️ Contexto y cronología · 🔗 Correlaciones · 🎭 Mapa de actores · 🧒 Explicámelo simple · ❓ Preguntas para seguir · 🎧 Para escuchar · 📣 Para compartir · 🌐 Traducir al español · 🃏 Para no olvidarla · 🎓 Explicalo con tus palabras · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
+🧭 Entender a fondo · ⚡ Resumen express · 📝 Resumen en 20 puntos · 💼 Brief ejecutivo · 🔎 Hechos vs. opiniones · ⚖️ Las ideas en juego · 🕰️ Contexto y cronología · 🔗 Correlaciones · 🎭 Mapa de actores · 🧒 Explicámelo simple · ❓ Preguntas para seguir · 🎧 Para escuchar · 📣 Para compartir · 🌐 Traducir al español · 🃏 Para no olvidarla · 🎓 Explicalo con tus palabras · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
 
 **Un tema (varios medios)**
-🔬 Profundizar (los 7 pasos de Panorama, con mapa conceptual Mermaid que se dibuja en pantalla) · 🔗 Correlaciones · 📋 Todo lo que se sabe · 📰 Cómo lo cuenta cada medio · ⚡ Resumen del tema · ⚖️ Las ideas en juego · 🎧 Para escuchar · 🃏 Para no olvidarlo · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
+🔬 Profundizar (los 7 pasos de Panorama, con mapa conceptual Mermaid que se dibuja en pantalla) · 🔗 Correlaciones · 📝 Resumen en 20 puntos · 📋 Todo lo que se sabe · 📰 Cómo lo cuenta cada medio · ⚡ Resumen del tema · ⚖️ Las ideas en juego · 🎧 Para escuchar · 🃏 Para no olvidarlo · 🗂️ Ficha para guardar · ✍️ Mi propio pedido
 
 **El día**
-🗞️ Resumen del día · ⚡ En 10 líneas · 📑 Informe completo · 🧩 Agenda y silencios · 🎧 Para escuchar · 🃏 Quiz del día · ✍️ Mi propio pedido
+🗞️ Resumen del día · 📝 El día en 20 puntos · ⚡ En 10 líneas · 📑 Informe completo · 🧩 Agenda y silencios · 🎧 Para escuchar · 🃏 Quiz del día · ✍️ Mi propio pedido
 
 **🔗 Correlaciones** arma las variables en juego, una tabla de relaciones que distingue causa, correlación, causa común, retroalimentación y coincidencia (con su nivel de confianza), cadenas de efectos indirectos, círculos viciosos o virtuosos, cruces con otros temas, casos comparables, un mapa de relaciones dibujado y qué dato confirmaría o desmentiría cada relación.
 
