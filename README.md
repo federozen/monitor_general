@@ -109,7 +109,7 @@ También se pueden pegar las claves en la barra lateral (🔑 Claves), y duran l
 
 En la sección Deportes, Olé aparece dos veces, con los lectores propios del Monitor deportivo y más notas que el resto de los medios:
 
-- **Olé · Home**: la portada de ole.com.ar en el orden en que aparece (la primera es la nota principal), hasta 40 notas.
+- **Olé · Home**: la portada de ole.com.ar en el orden en que aparece (la primera es la nota principal), hasta 40 notas. Combina dos lectores: el de tarjetas del Monitor deportivo y uno que toma todos los links a notas (.html) de la portada, para no depender del diseño del sitio. Si aun así trae menos de 10, completa con Google News (esas notas dicen "vía Google News").
 - **Olé · Últimas**: el listado de ole.com.ar/ultimas-noticias, con lo último publicado aunque nunca pise la portada, hasta 50 notas. Si esa página no responde, usa el feed RSS de Olé y después Google News.
 
 ## Cómo lee las noticias
