@@ -166,7 +166,7 @@ ss.setdefault("tit_tema", "")
 
 # Streamlit borra el valor de un widget cuando no se dibuja (por ejemplo, al cambiar de vista).
 # Se reasignan para que cada vista recuerde lo que el usuario eligió.
-_PERSISTIR = ("seccion", "esc_alcance", "esc_secs", "esc_orden", "esc_por_medio", "esc_modo", "esc_medio", "esc_cant", "modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
+_PERSISTIR = ("dia_modo", "dia_medio", "dia_cant", "seccion", "esc_alcance", "esc_secs", "esc_orden", "esc_por_medio", "esc_modo", "esc_medio", "esc_cant", "modo_noticias", "q_tema", "alc_tema", "secs_dia", "origen_nota", "link_manual", "txt_tit", "txt_med",
               "txt_cuerpo", "n_leer", "tit_tema")
 _PREFIJOS = ("pl_", "libre_", "q_", "sel_tema_")
 for _key in list(ss.keys()):
@@ -605,7 +605,7 @@ resultado = [cargar_medio(r["id"], ss.mas_notas[r["id"]]) if ss.mas_notas.get(r[
 notas_sec = preparar(notas_de(resultado, set(medios), silencio))
 
 _CORTO = {"📰 Noticias": "📰 Noticias", "🎧 Escuchar": "🎧 Escuchar", "🧠 Analizar nota": "🧠 Nota",
-          "🗂️ Tema": "🗂️ Tema", "🗞️ Resumen del día": "🗞️ Día", "🕘 Historial": "🕘 Historial"}
+          "🗂️ Tema": "🗂️ Tema", "🗞️ Resumen del día": "✦ Resumen", "🕘 Historial": "🕘 Historial"}
 
 
 def _vista_cambio():
@@ -701,6 +701,14 @@ def selector_seccion():
         st.selectbox("Sección", [x["id"] for x in SECCIONES], key="seccion", format_func=lambda x: NOMBRE_SECCION[x])
 
 
+def resumir_seccion(sec):
+    ss.dia_modo, ss.secs_dia, ss.vista = "Secciones", [sec], "🗞️ Resumen del día"
+
+
+def resumir_medio(fid):
+    ss.dia_modo, ss.dia_medio, ss.vista = "Un medio", fid, "🗞️ Resumen del día"
+
+
 def boton_inicio(lugar):
     if ss.vista != VISTAS[0]:
         st.button("🏠 Inicio", key=f"inicio_{lugar}", on_click=ir_a, args=(VISTAS[0],),
@@ -754,7 +762,12 @@ if vista == "📰 Noticias":
     st.markdown(f"### {seccion['nombre']}")
     st.caption(f"{seccion.get('desc', '')} · {n_ok} de {len(ok)} medios respondieron · {len(notas_sec)} notas · "
                f"actualizado {datetime.now(TZ).strftime('%H:%M')}")
-    st.button("🎧 Escuchar las noticias de la sección", on_click=ir_a, args=("🎧 Escuchar",))
+    with st.container(key="fila_acciones_sec"):
+        b1, b2 = st.columns(2)
+        b1.button("✦ Resumir la sección", on_click=resumir_seccion, args=(sid,), width="stretch",
+                  help="Resumen con IA de lo que publican todos los medios de esta sección")
+        b2.button("🎧 Escuchar", on_click=ir_a, args=("🎧 Escuchar",), width="stretch",
+                  help="Escuchar las noticias de la sección")
     if ss.tema["notas"]:
         st.info(f"🗂️ Tema en armado: **{len(ss.tema['notas'])} notas**.", icon="➕")
         st.button("Ir al tema →", on_click=ir_a, args=("🗂️ Tema",))
@@ -781,6 +794,9 @@ if vista == "📰 Noticias":
             with st.expander(f"{f['nombre']} — {estado}", expanded=i < 3):
                 if r["estado"] != "ok":
                     st.caption(f"No se pudo leer: {r.get('error') or 'sin notas'}")
+                else:
+                    st.button(f"✦ Resumen de {f['nombre']}", key=f"res_{r['id']}", on_click=resumir_medio, args=(r["id"],),
+                              help="Resumen con IA de todo lo que publicó este medio hoy")
                 for n in items:
                     fila_nota(n, r["id"])
                 actual = max(limite, ss.mas_notas.get(r["id"], 0))
@@ -1095,54 +1111,88 @@ elif vista == "🗂️ Tema":
 
 # ═══════════════════════ 🗞️ RESUMEN DEL DÍA ═══════════════════════
 elif vista == "🗞️ Resumen del día":
-    st.markdown("### 🗞️ Resumen del día")
-    st.caption("Panorama agrupa los titulares que cuentan la misma historia y los ordena por cuántos medios los tienen "
-               "y si van en tapa. La IA recibe esas historias ya curadas.")
-    ss.setdefault("secs_dia", ["argentina", "economia", "mundo"])
-    secs = st.multiselect("Secciones", [s["id"] for s in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x], key="secs_dia")
-    if secs:
-        todas, por_seccion, barra = [], [], st.progress(0.0, text="Leyendo los medios…")
-        for i, s in enumerate(secs):
-            barra.progress(i / len(secs), text=f"Leyendo {NOMBRE_SECCION[s]}…")
-            notas_s, tapas = [], {}
-            for r in cargar_seccion(s, limite):
-                items = [n for n in r["items"] if not silenciada(n, silencio)]
-                notas_s += items
-                if items:
-                    tapas[r["nombre"]] = items[0]["titulo"]
-            preparar(notas_s)
-            tapas = {m: next((n.get("titulo_es") or n["titulo"] for n in notas_s if n["medio"] == m), t)
-                     for m, t in tapas.items()}
-            por_seccion.append((s, lector.curar(notas_s), tapas))
-            todas += notas_s
-        barra.empty()
-        destacadas = lector.curar(todas) if len(secs) > 1 else []
-        st.markdown(f"**{len(todas)} notas** de {len(secs)} secciones · cada sección se resume por separado, "
-                    "así ninguna tapa a las otras.")
+    st.markdown("### ✦ Resúmenes con IA")
+    dia_modo = elegir("Resumir", ["Secciones", "Un medio"], "dia_modo",
+                      ayuda="Secciones: las historias de varios medios, agrupadas y ordenadas. "
+                            "Un medio: todo lo que publicó un solo medio hoy, en el orden de su portada.")
+    if dia_modo == "Secciones":
+        st.caption("Se agrupan los titulares que cuentan la misma historia y se ordenan por cuántos medios los tienen "
+                   "y si van en tapa. La IA recibe esas historias ya curadas, sección por sección.")
+        ss.setdefault("secs_dia", ["argentina", "economia", "mundo"])
+        secs = st.multiselect("Secciones", [s["id"] for s in SECCIONES], format_func=lambda x: NOMBRE_SECCION[x], key="secs_dia")
+        if secs:
+            todas, por_seccion, barra = [], [], st.progress(0.0, text="Leyendo los medios…")
+            for i, s in enumerate(secs):
+                barra.progress(i / len(secs), text=f"Leyendo {NOMBRE_SECCION[s]}…")
+                notas_s, tapas = [], {}
+                for r in cargar_seccion(s, limite):
+                    items = [n for n in r["items"] if not silenciada(n, silencio)]
+                    notas_s += items
+                    if items:
+                        tapas[r["nombre"]] = items[0]["titulo"]
+                preparar(notas_s)
+                tapas = {m: next((n.get("titulo_es") or n["titulo"] for n in notas_s if n["medio"] == m), t)
+                         for m, t in tapas.items()}
+                por_seccion.append((s, lector.curar(notas_s), tapas))
+                todas += notas_s
+            barra.empty()
+            destacadas = lector.curar(todas) if len(secs) > 1 else []
+            st.markdown(f"**{len(todas)} notas** de {len(secs)} secciones · cada sección se resume por separado, "
+                        "así ninguna tapa a las otras.")
 
-        with st.expander("Las historias más fuertes de cada sección (sin IA)"):
-            pestañas = st.tabs([NOMBRE_SECCION[s] for s, _, _ in por_seccion])
-            for tab, (s, grupos_s, tapas) in zip(pestañas, por_seccion):
-                with tab:
-                    st.caption(f"{len(tapas)} medios respondieron · {len(grupos_s)} historias")
-                    for g in grupos_s[:12]:
-                        st.markdown(f"<span class='mg-chip'>{len(g['medios'])} medios</span>"
-                                    + ("<span class='mg-chip'>tapa</span>" if g["rmin"] == 0 else "")
-                                    + f" {html.escape(g['titulo'])}", unsafe_allow_html=True)
+            with st.expander("Las historias más fuertes de cada sección (sin IA)"):
+                pestañas = st.tabs([NOMBRE_SECCION[s] for s, _, _ in por_seccion])
+                for tab, (s, grupos_s, tapas) in zip(pestañas, por_seccion):
+                    with tab:
+                        st.caption(f"{len(tapas)} medios respondieron · {len(grupos_s)} historias")
+                        for g in grupos_s[:12]:
+                            st.markdown(f"<span class='mg-chip'>{len(g['medios'])} medios</span>"
+                                        + ("<span class='mg-chip'>tapa</span>" if g["rmin"] == 0 else "")
+                                        + f" {html.escape(g['titulo'])}", unsafe_allow_html=True)
 
-        plantilla = selector_plantilla("dia", "dia")
-        cad = ia_motores.cadena()
-        maximo = 90 if cad and cad[0] == "groq" else 200
-        alcance_txt = ", ".join(NOMBRE_SECCION[s] for s in secs)
-        material = P.material_dia(por_seccion, destacadas, alcance_txt, datetime.now(TZ).strftime("%d/%m/%Y %H:%M"),
-                                  NOMBRE_SECCION, maximo)
-        clave_dia = "dia-" + "-".join(secs)
-        if plantilla:
-            if st.button("✦ Generar con IA", type="primary", key="gen_dia"):
-                correr(plantilla, material, "dia", clave_dia, f"Resumen · {alcance_txt}")
-            bloque_pedido(plantilla, material, "dia", "pedido_resumen_dia")
-        for i, r in enumerate([r for r in ss.resultados if r["ambito"] == "dia" and r["clave"] == clave_dia]):
-            mostrar_resultado(r, expandido=i == 0)
+            plantilla = selector_plantilla("dia", "dia")
+            cad = ia_motores.cadena()
+            maximo = 90 if cad and cad[0] == "groq" else 200
+            alcance_txt = ", ".join(NOMBRE_SECCION[s] for s in secs)
+            material = P.material_dia(por_seccion, destacadas, alcance_txt, datetime.now(TZ).strftime("%d/%m/%Y %H:%M"),
+                                      NOMBRE_SECCION, maximo)
+            clave_dia = "dia-" + "-".join(secs)
+            if plantilla:
+                if st.button("✦ Generar con IA", type="primary", key="gen_dia"):
+                    correr(plantilla, material, "dia", clave_dia, f"Resumen · {alcance_txt}")
+                bloque_pedido(plantilla, material, "dia", "pedido_resumen_dia")
+            for i, r in enumerate([r for r in ss.resultados if r["ambito"] == "dia" and r["clave"] == clave_dia]):
+                mostrar_resultado(r, expandido=i == 0)
+    else:
+        todos = [f["id"] for x in SECCIONES for f in x["fuentes"]]
+        ss.setdefault("dia_medio", medios[0] if medios else todos[0])
+        c1, c2 = st.columns([3, 1])
+        fid = c1.selectbox("Medio", todos, key="dia_medio",
+                           format_func=lambda x: f"{FUENTE_POR_ID[x]['nombre']}  ·  {NOMBRE_SECCION[FUENTE_POR_ID[x]['seccion']]}")
+        ss.setdefault("dia_cant", 40)
+        cant = int(c2.number_input("Notas", 10, 120, step=10, key="dia_cant",
+                                   help="Cuántas notas del medio leer, en el orden de su portada."))
+        f = FUENTE_POR_ID[fid]
+        with st.spinner(f"Leyendo {f['nombre']}…"):
+            r = cargar_medio(fid, max(cant, limite))
+        notas_m = preparar([n for n in r["items"] if not silenciada(n, silencio)])[:cant]
+        if not notas_m:
+            st.warning(f"{f['nombre']} no respondió ahora. Probá en un rato con 🔄 Actualizar noticias.")
+        else:
+            st.markdown(f"**{len(notas_m)} notas** de {f['nombre']}" + (" · algunas vía Google News" if any(n.get("via") == "google" for n in notas_m) else ""))
+            with st.expander("Ver las notas (sin IA)"):
+                for k_, n in enumerate(notas_m[:40], 1):
+                    st.markdown(f"<span class='mg-chip'>H{k_}</span> {html.escape(n.get('titulo_es') or n['titulo'])}", unsafe_allow_html=True)
+            plantilla = selector_plantilla("medio", "medio")
+            material = P.material_medio(f["nombre"], NOMBRE_SECCION[f["seccion"]], notas_m,
+                                        datetime.now(TZ).strftime("%d/%m/%Y %H:%M"))
+            clave_medio = f"medio-{fid}"
+            if plantilla:
+                if st.button("✦ Generar con IA", type="primary", key="gen_medio"):
+                    correr(plantilla, material, "medio", clave_medio, f"{f['nombre']} · hoy")
+                bloque_pedido(plantilla, material, "medio", f"pedido_{fid}")
+            for i_, res in enumerate([x for x in ss.resultados if x["ambito"] == "medio" and x["clave"] == clave_medio]):
+                mostrar_resultado(res, expandido=i_ == 0)
 
 
 # ═══════════════════════ 🕘 HISTORIAL ═══════════════════════

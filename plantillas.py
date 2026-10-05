@@ -656,14 +656,127 @@ _insertar_despues(NOTA, NOTA_PUNTOS, "resumen")
 _insertar_despues(TEMA, TEMA_PUNTOS, "correlaciones_tema")
 _insertar_despues(DIA, DIA_PUNTOS, "dia")
 
-PLANTILLAS = {"nota": NOTA, "tema": TEMA, "dia": DIA}
+# ─────────── Preguntas y respuestas (nota, tema y día) ───────────
+_FORMATO_QA = """Formato: cada pregunta como subtítulo que empiece con "### " y termine con "?", y debajo la respuesta en 2 a 4 oraciones claras. Sin introducción ni cierre.
+- Ordenalas de lo básico a lo profundo: qué pasó, quiénes, cuándo y dónde; después cómo y por qué; al final qué cambia, a quién afecta y qué sigue.
+- Escribí las preguntas como las haría un lector común, con palabras simples.
+- Incluí al menos una pregunta importante que el material NO responde, y decilo en la respuesta en lugar de inventar."""
+
+NOTA_QA = {
+    "id": "qa", "icono": "💬", "nombre": "Preguntas y respuestas",
+    "desc": "La nota explicada como preguntas frecuentes: de qué pasó a por qué importa y qué sigue.",
+    "max_tokens": 2500, "nivel": "modelo",
+    "system": "Explicá la nota como una serie de preguntas y respuestas, entre 10 y 15.\n" + _FORMATO_QA + "\n\n" + REGLAS_NOTA,
+}
+TEMA_QA = {
+    "id": "qa_tema", "icono": "💬", "nombre": "Preguntas y respuestas",
+    "desc": "Todo lo que se sabe de la historia como preguntas frecuentes, con el medio de cada dato.",
+    "max_tokens": 3500, "nivel": "modelo",
+    "system": "Explicá esta historia como una serie de preguntas y respuestas, entre 12 y 18, a partir de todo lo que publicaron los medios.\n"
+              + _FORMATO_QA + "\n- En las respuestas, el medio entre corchetes al lado de cada dato, por ejemplo [Clarín]. Si los medios no coinciden, contalo.\n\n" + REGLAS_TEMA,
+}
+DIA_QA = {
+    "id": "qa_dia", "icono": "💬", "nombre": "Preguntas del día",
+    "desc": "Las noticias importantes de hoy contadas como preguntas y respuestas, repartidas por sección.",
+    "max_tokens": 3000, "nivel": "modelo",
+    "system": _ROL_DIA + """
+
+Contame el día como preguntas y respuestas: entre 12 y 18, una por noticia importante, repartidas entre todas las secciones del material y de la más importante a la menos importante.
+Formato: cada pregunta como subtítulo que empiece con "### " (por ejemplo "### ¿Qué pasó con el dólar?") y debajo la respuesta en 2 o 3 oraciones, con la sección entre corchetes al principio, por ejemplo [Economía]. Sin introducción ni cierre.
+
+""" + REGLAS_DIA,
+}
+_insertar_despues(NOTA, NOTA_QA, "puntos")
+_insertar_despues(TEMA, TEMA_QA, "puntos_tema")
+_insertar_despues(DIA, DIA_QA, "puntos_dia")
+
+
+# ═══════════════════════════════ UN MEDIO (lo que publicó hoy) ═══════════════════════════════
+REGLAS_MEDIO = """REGLAS
+- Basate SOLO en los títulos y bajadas del material. No inventes datos, cifras, nombres ni declaraciones.
+- El orden del material es el de la portada del medio: H1 es la nota principal. Lo que va arriba o tiene varias notas es lo que el medio más destaca.
+- Contá lo que publicó el medio, sin opinar sobre él, sin compararlo con otros medios y sin atribuirle intenciones.
+- Dejá afuera notas de servicio (horóscopo, loterías, recetas, cómo ver un partido) salvo que sean muchas.
+- Escribí en español rioplatense, claro y directo, aunque los títulos estén en otro idioma."""
+
+_ROL_MEDIO = "Te paso las notas que publicó hoy un medio, en el orden de su portada (H1 es la principal), con su título y, si la hay, la bajada."
+
+MEDIO = [
+    {
+        "id": "medio", "icono": "🗞️", "nombre": "Qué publicó hoy",
+        "desc": "Lo principal del medio, sus temas agrupados, las breves y qué pone arriba en la portada.",
+        "max_tokens": 3000, "nivel": "modelo",
+        "system": _ROL_MEDIO + """
+
+Contale a alguien, de forma simple y ordenada, todo lo que publicó este medio hoy:
+## En pocas palabras
+Dos o tres oraciones con lo principal.
+## Los temas
+Entre 5 y 10 bloques, del más trabajado al menos trabajado. Cada uno con un subtítulo "### " (tema, protagonista o lugar) y 2 o 3 oraciones con lo que publicó el medio sobre eso.
+## Breves
+Una línea por cada nota importante que no entró en los temas (hasta 15).
+## Lo que pone arriba
+Dos oraciones: qué temas pone el medio en los primeros lugares de la portada y qué temas muy trabajados (con varias notas) no están arriba.
+
+""" + REGLAS_MEDIO,
+    },
+    {
+        "id": "puntos_medio", "icono": "📝", "nombre": "En 20 puntos",
+        "desc": "Lo más importante que publicó el medio, en 20 viñetas cortas y simples.",
+        "max_tokens": 2000, "nivel": "modelo",
+        "system": _ROL_MEDIO + """
+
+Resumí en 20 puntos lo que publicó el medio: una noticia o tema distinto por punto, de lo más destacado a lo menos destacado según el orden de la portada.
+- Cada punto: una oración simple de hasta 25 palabras que diga qué pasó.
+- Formato: lista numerada del 1 al 20, sin títulos ni introducción. Si no da para 20, hacé menos. Al final, una línea aparte que empiece con **En síntesis:** con la agenda del medio en una oración.
+
+""" + REGLAS_MEDIO,
+    },
+    {
+        "id": "rapido_medio", "icono": "⚡", "nombre": "En 10 líneas",
+        "desc": "Las 10 cosas principales que publicó el medio, una línea cada una.",
+        "max_tokens": 900, "nivel": "rapido",
+        "system": _ROL_MEDIO + """
+
+Escribí las 10 cosas principales que publicó el medio: lista numerada, una sola línea de hasta 22 palabras cada una, de la más destacada a la menos destacada, cada una sobre un asunto distinto.
+
+""" + REGLAS_MEDIO,
+    },
+    {
+        "id": "qa_medio", "icono": "💬", "nombre": "Preguntas y respuestas",
+        "desc": "Lo que publicó el medio contado como preguntas y respuestas.",
+        "max_tokens": 2500, "nivel": "modelo",
+        "system": _ROL_MEDIO + """
+
+Contá lo que publicó el medio como preguntas y respuestas: entre 10 y 15, una por noticia importante, de la más destacada a la menos destacada.
+Formato: cada pregunta como subtítulo que empiece con "### " y debajo la respuesta en 2 o 3 oraciones. Sin introducción ni cierre.
+
+""" + REGLAS_MEDIO,
+    },
+    {
+        "id": "escuchar_medio", "icono": "🎧", "nombre": "Para escuchar",
+        "desc": "Un repaso de unos tres minutos de lo que publicó el medio, escrito para oír.",
+        "max_tokens": 1800, "nivel": "modelo",
+        "system": _ROL_MEDIO + """
+
+Escribí un repaso PARA ESCUCHAR EN VOZ ALTA de lo que publicó el medio, de unas 450 palabras (unos tres minutos):
+- Empezá con una frase que diga qué medio es y los tres temas principales.
+- Después contá los temas, de a uno, con dos o tres oraciones cada uno, en el orden en que el medio los destaca.
+- Frases cortas, sin viñetas, títulos, asteriscos, emojis, tablas, links ni paréntesis.
+
+""" + REGLAS_MEDIO,
+    },
+]
+
+PLANTILLAS = {"nota": NOTA, "tema": TEMA, "dia": DIA, "medio": MEDIO}
 
 # Plantilla libre: el usuario escribe qué quiere y se le suman las reglas del ámbito
-REGLAS = {"nota": REGLAS_NOTA, "tema": REGLAS_TEMA, "dia": REGLAS_DIA}
+REGLAS = {"nota": REGLAS_NOTA, "tema": REGLAS_TEMA, "dia": REGLAS_DIA, "medio": REGLAS_MEDIO}
 BASE_LIBRE = {
     "nota": "Te paso una nota periodística. Hacé lo que te pido a continuación.",
     "tema": "Te paso todo lo que publicaron varios medios sobre una misma historia. Hacé lo que te pido a continuación.",
     "dia": _ROL_DIA + " Hacé lo que te pido a continuación.",
+    "medio": _ROL_MEDIO + " Hacé lo que te pido a continuación.",
 }
 
 
@@ -758,6 +871,17 @@ def material_dia(secciones, destacadas, alcance, fecha, nombres_seccion, maximo=
             lineas.append(f"Con qué abre cada medio de {nombre}:")
             lineas += [f"- {m}: {t[:160]}" for m, t in tapas.items()]
         lineas.append("")
+    return "\n".join(lineas)
+
+
+def material_medio(nombre, seccion, notas, fecha):
+    """Las notas de un medio en el orden de su portada (H1 = la principal)."""
+    lineas = [f"Medio: {nombre}", f"Sección: {seccion}", f"Fecha: {fecha}", "",
+              f"NOTAS EN EL ORDEN DE SU PORTADA ({len(notas)}):"]
+    for k, n in enumerate(notas, 1):
+        tit = n.get("titulo_es") or n["titulo"]
+        b = f" — {n['bajada'][:220]}" if n.get("bajada") else ""
+        lineas.append(f"[H{k}] {tit}{b}")
     return "\n".join(lineas)
 
 
