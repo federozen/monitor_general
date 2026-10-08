@@ -8,7 +8,7 @@ Las claves NUNCA van en el código: se cargan en los Secrets de Streamlit Cloud
   MISTRAL_API_KEY      Mistral (console.mistral.ai, plan "Experiment"), gratis
   GROQ_API_KEY         Groq (console.groq.com), gratis
   OPENROUTER_API_KEY   OpenRouter (openrouter.ai, solo modelos gratuitos), gratis
-  ANTHROPIC_API_KEY    Claude, pago
+  ANTHROPIC_API_KEY    Claude, pago (Claude Haiku 5.5: el más barato de Anthropic, USD 0,10 / 0,50 por millón de tokens)
 
 Opcionales:
   IA_ORDEN             orden de los gratuitos (por defecto gemini,mistral,groq,openrouter)
@@ -39,7 +39,9 @@ MODELOS = {   # (modelo para notas y análisis, modelo rápido/económico)
     "mistral": ("mistral-medium-latest", "mistral-small-latest"),
     "groq": ("openai/gpt-oss-120b", "openai/gpt-oss-20b"),
     "openrouter": ("openrouter/free", "openrouter/free"),
-    "claude": ("claude-sonnet-5", "claude-haiku-4-5-20251001"),
+    # Claude Haiku 5.5 para todo: unas 20 veces más barato que Sonnet 5.5 y 10 veces más que Haiku 4.5.
+    # Se puede cambiar con CLAUDE_MODELO / CLAUDE_MODELO_RAPIDO (por ejemplo "claude-sonnet-5-5") sin tocar código.
+    "claude": ("claude-haiku-5-5", "claude-haiku-5-5"),
 }
 # Valor que la app usa como "api_key" cuando no hay clave de Claude pero sí motores gratuitos
 SIN_CLAVE = "motores-gratis"
@@ -184,12 +186,24 @@ def _compatible(m, url, prompt, system, modelo, max_tokens, extra=None):
     return texto
 
 
-def _claude(prompt, system, modelo, max_tokens, anthropic_key):
+def _es_claude_5(modelo):
+    """Los modelos Claude 5.x piensan antes de responder (el pensamiento cuenta dentro de max_tokens),
+    aceptan el parámetro de esfuerzo y rechazan temperature/top_p/top_k."""
+    return bool(re.match(r"claude-(haiku|sonnet|opus|fable)-5", modelo or ""))
+
+
+def _claude(prompt, system, modelo, max_tokens, anthropic_key, nivel="modelo"):
     key = anthropic_key if (_es_clave(anthropic_key) and anthropic_key != SIN_CLAVE) else clave("claude")
+    kw = {"system": system} if system else {}
+    if _es_claude_5(modelo):
+        # Esfuerzo bajo para lo rápido (traducir títulos, resúmenes cortos) y medio para los análisis.
+        # El pensamiento y el tokenizador nuevo (~30 % más tokens) consumen parte del tope: se deja margen.
+        esfuerzo = "low" if nivel == "rapido" else "medium"
+        kw["extra_body"] = {"output_config": {"effort": esfuerzo}}
+        max_tokens = min(int(max_tokens * 1.3) + (1500 if esfuerzo == "low" else 4000), 32000)
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=key)
-        kw = {"system": system} if system else {}
         msg = client.messages.create(model=modelo, max_tokens=max_tokens,
                                      messages=[{"role": "user", "content": prompt}], **kw)
     except Exception as e:
@@ -225,7 +239,7 @@ def generar(prompt: str, max_tokens: int = 2000, nivel: str = "modelo", anthropi
                 texto = _compatible(m, "https://openrouter.ai/api/v1/chat/completions", prompt, system, modelo, max_tokens,
                                     {"X-Title": "Monitor General"})
             else:
-                texto = _claude(prompt, system, modelo, max_tokens, anthropic_key)
+                texto = _claude(prompt, system, modelo, max_tokens, anthropic_key, nivel)
         except ErrorMotor as e:
             errores.append(e)
             continue

@@ -62,6 +62,14 @@ La app está pensada para usarse sobre todo en el celular:
 - En el menú, **✦ Resumen** tiene los dos modos: *Secciones* (una o varias, cada una con su cupo) y *Un medio* (cualquier medio de cualquier sección y cuántas notas leer, hasta 120).
 - Plantillas para un medio: 🗞️ Qué publicó hoy (lo principal, sus temas, breves y qué pone arriba en la portada) · 📝 En 20 puntos · ⚡ En 10 líneas · 💬 Preguntas y respuestas · 🎧 Para escuchar · ✍️ Mi propio pedido.
 
+## Claude: Haiku 5.5
+
+Cuando la app usa Claude (de respaldo si fallan los gratuitos, o primero si elegís **Claude Haiku 5.5 primero** en 🤖 Motor), usa **Claude Haiku 5.5** (`claude-haiku-5-5`), el modelo más barato de Anthropic: USD 0,10 por millón de tokens de entrada y USD 0,50 de salida (para pedidos de hasta 100.000 tokens, que son todos los de esta app). Es unas 20 veces más barato que Sonnet 5.5 y 10 veces más que Haiku 4.5.
+
+- Piensa antes de responder: se usa esfuerzo **bajo** en lo rápido (traducir títulos, "En 10 líneas") y **medio** en los análisis, con margen para que el pensamiento no corte la respuesta.
+- Como referencia, un análisis de una nota completa (unos 6.000 tokens de entrada y 2.000 de salida, contando el pensamiento) cuesta alrededor de USD 0,0016: unos 600 análisis por dólar.
+- Para usar otro modelo sin tocar código: `CLAUDE_MODELO` y `CLAUDE_MODELO_RAPIDO` en los Secrets (por ejemplo `claude-sonnet-5-5`).
+
 ## Plantillas
 
 **Una nota**

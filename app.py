@@ -175,7 +175,7 @@ for _key in list(ss.keys()):
 
 
 def nombre_motor(m):
-    return {"auto": "Automático · gratis primero", "claude": "Claude primero · pago"}.get(
+    return {"auto": "Automático · gratis primero", "claude": "Claude Haiku 5.5 primero · pago, muy barato"}.get(
         m, f"{ia_motores.NOMBRES.get(m, m)} · gratis")
 
 
